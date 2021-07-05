@@ -1,6 +1,6 @@
 from typing import Any
 
-from vnpy.trader.constant import Direction, Offset
+from vnpy.trader.constant import Direction
 from vnpy.trader.object import (TickData, OrderData, TradeData)
 from vnpy.trader.utility import round_to
 
@@ -18,7 +18,6 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         algoid: str,
         spread: SpreadData,
         direction: Direction,
-        offset: Offset,
         price: float,
         volume: float,
         payup: int,
@@ -28,7 +27,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         """"""
         super().__init__(
             algo_engine, algoid, spread,
-            direction, offset, price, volume,
+            direction, price, volume,
             payup, interval, lock
         )
 

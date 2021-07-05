@@ -24,7 +24,6 @@ class SpreadAlgoTemplate:
         algoid: str,
         spread: SpreadData,
         direction: Direction,
-        offset: Offset,
         price: float,
         volume: float,
         payup: int,
@@ -38,7 +37,6 @@ class SpreadAlgoTemplate:
         self.spread: SpreadData = spread
         self.spread_name: str = spread.name
 
-        self.offset: Offset = offset
         self.direction: Direction = direction
         self.price: float = price
         self.volume: float = volume
@@ -571,8 +569,7 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool,
-        offset: Offset
+        lock: bool
     ) -> str:
         """"""
         if not self.trading:
@@ -582,7 +579,6 @@ class SpreadStrategyTemplate:
             self,
             self.spread_name,
             direction,
-            offset,
             price,
             volume,
             payup,
@@ -600,13 +596,12 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool = False,
-        offset: Offset = Offset.NONE
+        lock: bool = False
     ) -> str:
         """"""
         return self.start_algo(
             Direction.LONG, price, volume,
-            payup, interval, lock, offset
+            payup, interval, lock
         )
 
     def start_short_algo(
@@ -615,13 +610,12 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool = False,
-        offset: Offset = Offset.NONE
+        lock: bool = False
     ) -> str:
         """"""
         return self.start_algo(
             Direction.SHORT, price, volume,
-            payup, interval, lock, offset
+            payup, interval, lock
         )
 
     def stop_algo(self, algoid: str):

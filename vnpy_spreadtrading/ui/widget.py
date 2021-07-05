@@ -274,9 +274,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         add_spread_button = QtWidgets.QPushButton("创建价差")
         add_spread_button.clicked.connect(self.add_spread)
 
-        add_advanced_button = QtWidgets.QPushButton("创建灵活价差")
-        add_advanced_button.clicked.connect(self.add_advanced_spread)
-
         remove_spread_button = QtWidgets.QPushButton("移除价差")
         remove_spread_button.clicked.connect(self.remove_spread)
 
@@ -301,7 +298,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         vbox.addWidget(stop_button)
         vbox.addStretch()
         vbox.addWidget(add_spread_button)
-        vbox.addWidget(add_advanced_button)
         vbox.addWidget(remove_spread_button)
 
         self.setLayout(vbox)
@@ -329,11 +325,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
     def add_spread(self):
         """"""
         dialog = SpreadDataDialog(self.spread_engine)
-        dialog.exec_()
-
-    def add_advanced_spread(self):
-        """"""
-        dialog = AdvancedSpreadDataDialog(self.spread_engine)
         dialog.exec_()
 
     def remove_spread(self):
@@ -372,156 +363,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             self.strategy_engine.add_strategy(
                 class_name, strategy_name, spread_name, setting
             )
-
-
-class SpreadDataDialog(QtWidgets.QDialog):
-    """"""
-
-    def __init__(self, spread_engine: SpreadEngine):
-        """"""
-        super().__init__()
-
-        self.spread_engine: SpreadEngine = spread_engine
-
-        self.leg_widgets = []
-
-        self.init_ui()
-
-    def init_ui(self):
-        """"""
-        self.setWindowTitle("创建价差")
-
-        self.name_line = QtWidgets.QLineEdit()
-        self.active_line = QtWidgets.QLineEdit()
-
-        self.min_volume_combo = QtWidgets.QComboBox()
-        self.min_volume_combo.addItems([
-            "1",
-            "0.1",
-            "0.01",
-            "0.001",
-            "0.0001",
-            "0.00001",
-            "0.000001",
-        ])
-
-        self.grid = QtWidgets.QGridLayout()
-
-        button_add = QtWidgets.QPushButton("创建价差")
-        button_add.clicked.connect(self.add_spread)
-
-        Label = QtWidgets.QLabel
-
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(Label("价差名称"), 0, 0)
-        grid.addWidget(self.name_line, 0, 1, 1, 4)
-        grid.addWidget(Label("主动腿代码"), 1, 0)
-        grid.addWidget(self.active_line, 1, 1, 1, 4)
-        grid.addWidget(Label("最小交易量"), 2, 0)
-        grid.addWidget(self.min_volume_combo, 2, 1, 1, 4)
-
-        grid.addWidget(Label(""), 3, 0)
-        grid.addWidget(Label("本地代码"), 4, 1)
-        grid.addWidget(Label("价格乘数"), 4, 2)
-        grid.addWidget(Label("交易乘数"), 4, 3)
-        grid.addWidget(Label("合约模式"), 4, 4)
-
-        int_validator = QtGui.QIntValidator()
-        double_validator = QtGui.QDoubleValidator()
-
-        leg_count = 5
-        for i in range(leg_count):
-            symbol_line = QtWidgets.QLineEdit()
-
-            price_line = QtWidgets.QLineEdit()
-            price_line.setValidator(double_validator)
-
-            trading_line = QtWidgets.QLineEdit()
-            trading_line.setValidator(int_validator)
-
-            inverse_combo = QtWidgets.QComboBox()
-            inverse_combo.addItems(["正向", "反向"])
-
-            grid.addWidget(Label("腿{}".format(i + 1)), 5 + i, 0)
-            grid.addWidget(symbol_line, 5 + i, 1)
-            grid.addWidget(price_line, 5 + i, 2)
-            grid.addWidget(trading_line, 5 + i, 3)
-            grid.addWidget(inverse_combo, 5 + i, 4)
-
-            d = {
-                "symbol": symbol_line,
-                "price": price_line,
-                "trading": trading_line,
-                "inverse": inverse_combo
-            }
-            self.leg_widgets.append(d)
-
-        grid.addWidget(Label(""), 5 + leg_count, 0,)
-        grid.addWidget(button_add, 6 + leg_count, 0, 1, 5)
-
-        self.setLayout(grid)
-
-    def add_spread(self):
-        """"""
-        spread_name = self.name_line.text()
-        if not spread_name:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "创建失败",
-                "请输入价差名称",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
-
-        active_symbol = self.active_line.text()
-        min_volume = float(self.min_volume_combo.currentText())
-
-        leg_settings = {}
-        for d in self.leg_widgets:
-            try:
-                vt_symbol = d["symbol"].text()
-                price_multiplier = int(d["price"].text())
-                trading_multiplier = int(d["trading"].text())
-
-                if d["inverse"].currentText() == "正向":
-                    inverse_contract = False
-                else:
-                    inverse_contract = True
-
-                leg_settings[vt_symbol] = {
-                    "vt_symbol": vt_symbol,
-                    "price_multiplier": price_multiplier,
-                    "trading_multiplier": trading_multiplier,
-                    "inverse_contract": inverse_contract
-                }
-            except ValueError:
-                pass
-
-        if len(leg_settings) < 2:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "创建失败",
-                "价差最少需要2条腿",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
-
-        if active_symbol not in leg_settings:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "创建失败",
-                "各条腿中找不到主动腿代码",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
-
-        self.spread_engine.add_spread(
-            spread_name,
-            list(leg_settings.values()),
-            active_symbol,
-            min_volume
-        )
-        self.accept()
 
 
 class SpreadRemoveDialog(QtWidgets.QDialog):
@@ -857,7 +698,7 @@ class SettingEditor(QtWidgets.QDialog):
         return setting
 
 
-class AdvancedSpreadDataDialog(QtWidgets.QDialog):
+class SpreadDataDialog(QtWidgets.QDialog):
     """"""
 
     def __init__(self, spread_engine: SpreadEngine):
@@ -1019,7 +860,7 @@ class AdvancedSpreadDataDialog(QtWidgets.QDialog):
             )
             return
 
-        self.spread_engine.add_advanced_spread(
+        self.spread_engine.add_spread(
             spread_name,
             list(leg_settings.values()),
             price_formula,

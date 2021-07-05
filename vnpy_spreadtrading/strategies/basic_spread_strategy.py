@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from vnpy.app.spread_trading import (
+from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
     SpreadAlgoTemplate,
     SpreadData,

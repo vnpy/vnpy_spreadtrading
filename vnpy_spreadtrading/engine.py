@@ -739,8 +739,7 @@ class SpreadStrategyEngine:
         Load strategy class from source code.
         """
         path1 = Path(__file__).parent.joinpath("strategies")
-        self.load_strategy_class_from_folder(
-            path1, "vnpy.app.spread_trading.strategies")
+        self.load_strategy_class_from_folder(path1, "vnpy_spreadtrading.strategies")
 
         path2 = Path.cwd().joinpath("strategies")
         self.load_strategy_class_from_folder(path2, "strategies")

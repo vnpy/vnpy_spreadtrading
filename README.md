@@ -1,4 +1,4 @@
-# vn.py框架的CTA策略模块
+# vn.py框架的价差交易模块
 
 <p align="center">
   <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/vnpy-logo.png"/>
@@ -13,7 +13,7 @@
 
 ## 说明
 
-针对单标的CTA类量化策略设计的应用模块，用于实现CTA策略从代码开发、历史回测、参数优化到自动交易的全流程业务功能。
+针对多条合约腿价差交易设计的应用模块，覆盖价差盘口计算、价差算法执行、价差策略开发的全流程业务功能。
 
 ## 安装
 
@@ -22,7 +22,7 @@
 直接使用pip命令：
 
 ```
-pip install vnpy_ctastrategy
+pip install vnpy_spreadtrading
 ```
 
 下载解压后在cmd中运行

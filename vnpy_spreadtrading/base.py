@@ -143,7 +143,6 @@ class SpreadData:
         price_formula: str,
         trading_multipliers: Dict[str, int],
         active_symbol: str,
-        inverse_contracts: Dict[str, bool],
         min_volume: float
     ):
         """"""
@@ -158,9 +157,6 @@ class SpreadData:
 
         # For calculating spread pos and sending orders
         self.trading_multipliers: Dict[str, int] = trading_multipliers
-
-        # For inverse derivative contracts of crypto market
-        self.inverse_contracts: Dict[str, bool] = inverse_contracts
 
         self.price_formula: str = ""
         self.trading_formula: str = ""
@@ -237,17 +233,10 @@ class SpreadData:
             trading_multiplier = self.trading_multipliers[leg.vt_symbol]
             if not trading_multiplier:
                 continue
-
-            inverse_contract = self.inverse_contracts[leg.vt_symbol]
-            if not inverse_contract:
-                leg_bid_volume = leg.bid_volume
-                leg_ask_volume = leg.ask_volume
-            else:
-                leg_bid_volume = calculate_inverse_volume(
-                    leg.bid_volume, leg.bid_price, leg.size)
-                leg_ask_volume = calculate_inverse_volume(
-                    leg.ask_volume, leg.ask_price, leg.size)
-
+    
+            leg_bid_volume = leg.bid_volume
+            leg_ask_volume = leg.ask_volume
+        
             if trading_multiplier > 0:
                 adjusted_bid_volume = floor_to(
                     leg_bid_volume / trading_multiplier,
@@ -302,13 +291,7 @@ class SpreadData:
             if not trading_multiplier:
                 continue
 
-            inverse_contract = self.inverse_contracts[leg.vt_symbol]
-            if not inverse_contract:
-                net_pos = leg.net_pos
-            else:
-                net_pos = calculate_inverse_volume(
-                    leg.net_pos, leg.net_pos_price, leg.size)
-
+            net_pos = leg.net_pos
             adjusted_net_pos = net_pos / trading_multiplier
 
             if adjusted_net_pos > 0:
@@ -373,11 +356,6 @@ class SpreadData:
         )
         return tick
 
-    def is_inverse(self, vt_symbol: str) -> bool:
-        """"""
-        inverse_contract = self.inverse_contracts[vt_symbol]
-        return inverse_contract
-
     def get_leg_size(self, vt_symbol: str) -> float:
         """"""
         leg = self.legs[vt_symbol]
@@ -388,17 +366,6 @@ class SpreadData:
         locals().update(data)
         value = eval(formula)
         return value
-
-
-def calculate_inverse_volume(
-    original_volume: float,
-    price: float,
-    size: float,
-) -> float:
-    """"""
-    if not price:
-        return 0
-    return original_volume * size / price
 
 
 class BacktestingMode(Enum):

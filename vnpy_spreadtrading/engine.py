@@ -136,14 +136,12 @@ class SpreadDataEngine:
             for variable, vt_symbol in spread.variable_symbols.items():
                 trading_direction = spread.variable_directions[variable]
                 trading_multiplier = spread.trading_multipliers[vt_symbol]
-                inverse_contract = spread.inverse_contracts[vt_symbol]
 
                 leg_setting = {
                     "variable": variable,
                     "vt_symbol": vt_symbol,
                     "trading_direction": trading_direction,
-                    "trading_multiplier": trading_multiplier,
-                    "inverse_contract": inverse_contract
+                    "trading_multiplier": trading_multiplier
                 }
                 leg_settings.append(leg_setting)
 
@@ -280,7 +278,6 @@ class SpreadDataEngine:
         variable_symbols: Dict[str, str] = {}
         variable_directions: Dict[str, int] = {}
         trading_multipliers: Dict[str, int] = {}
-        inverse_contracts: Dict[str, bool] = {}
 
         for leg_setting in leg_settings:
             vt_symbol = leg_setting["vt_symbol"]
@@ -291,7 +288,6 @@ class SpreadDataEngine:
             variable_symbols[variable] = vt_symbol
             variable_directions[variable] = leg_setting["trading_direction"]
             trading_multipliers[vt_symbol] = leg_setting["trading_multiplier"]
-            inverse_contracts[vt_symbol] = leg_setting.get("inverse_contract", False)
 
         spread = SpreadData(
             name,
@@ -301,7 +297,6 @@ class SpreadDataEngine:
             price_formula,
             trading_multipliers,
             active_symbol,
-            inverse_contracts,
             min_volume
         )
         self.spreads[name] = spread

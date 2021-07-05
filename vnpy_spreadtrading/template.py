@@ -9,7 +9,7 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import Direction, Status, Offset, Interval
 from vnpy.trader.utility import virtual, floor_to, ceil_to, round_to
 
-from .base import SpreadData, calculate_inverse_volume
+from .base import SpreadData
 
 
 class SpreadAlgoTemplate:
@@ -105,23 +105,10 @@ class SpreadAlgoTemplate:
             )
             leg_traded = self.leg_traded[passive_symbol]
 
-            # For linear contract, traded volume must be no less than target volume
-            if not self.spread.is_inverse(leg.vt_symbol):
-                if leg_target > 0 and leg_traded < leg_target:
-                    finished = False
-                elif leg_target < 0 and leg_traded > leg_target:
-                    finished = False
-            # For inverse contract, the difference must be lower than min volume
-            else:
-                leg_min_volume = self.spread.calculate_leg_volume(
-                    passive_symbol, self.spread.min_volume
-                )
-
-                dif = leg_target - leg_traded
-                if leg_target > 0 and dif >= leg_min_volume:
-                    finished = False
-                elif leg_target < 0 and dif <= -leg_min_volume:
-                    finished = False
+            if leg_target > 0 and leg_traded < leg_target:
+                finished = False
+            elif leg_target < 0 and leg_traded > leg_target:
+                finished = False
 
             if not finished:
                 break
@@ -136,22 +123,9 @@ class SpreadAlgoTemplate:
             leg_traded = self.leg_traded[vt_symbol]
 
             trading_multiplier = self.spread.trading_multipliers[vt_symbol]
-            size = self.spread.get_leg_size(vt_symbol)
 
-            if self.spread.is_inverse(vt_symbol):
-                leg_target = calculate_inverse_volume(
-                    self.target * trading_multiplier,
-                    leg.last_price,
-                    size
-                )
-                min_change = calculate_inverse_volume(
-                    leg.min_volume,
-                    leg.last_price,
-                    size
-                )
-            else:
-                leg_target = self.target * trading_multiplier
-                min_change = leg.min_volume
+            leg_target = self.target * trading_multiplier
+            min_change = leg.min_volume
 
             leg_left = leg_target - leg_traded
             if abs(leg_left) >= min_change:
@@ -173,19 +147,7 @@ class SpreadAlgoTemplate:
 
     def update_trade(self, trade: TradeData):
         """"""
-        # For inverse contract:
-        # record coin trading volume as leg trading volume,
-        # not contract volume!
-        if self.spread.is_inverse(trade.vt_symbol):
-            size = self.spread.get_leg_size(trade.vt_symbol)
-
-            trade_volume = calculate_inverse_volume(
-                trade.volume,
-                trade.price,
-                size
-            )
-        else:
-            trade_volume = trade.volume
+        trade_volume = trade.volume
 
         if trade.direction == Direction.LONG:
             self.leg_traded[trade.vt_symbol] += trade_volume
@@ -277,17 +239,6 @@ class SpreadAlgoTemplate:
         direction: Direction,
     ):
         """"""
-        # For inverse contract:
-        # calculate contract trading volume from coin trading volume
-        if self.spread.is_inverse(vt_symbol):
-            size = self.spread.get_leg_size(vt_symbol)
-
-            if self.offset == Offset.CLOSE:
-                leg = self.spread.legs[vt_symbol]
-                volume = volume * leg.net_pos_price / size
-            else:
-                volume = volume * price / size
-
         # Round order volume to min_volume of contract
         leg = self.spread.legs[vt_symbol]
         volume = round_to(volume, leg.min_volume)

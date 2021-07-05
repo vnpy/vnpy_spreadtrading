@@ -767,21 +767,16 @@ class SpreadDataDialog(QtWidgets.QDialog):
             trading_line = QtWidgets.QLineEdit()
             trading_line.setValidator(int_validator)
 
-            inverse_combo = QtWidgets.QComboBox()
-            inverse_combo.addItems(["正向", "反向"])
-
             grid.addWidget(Label(variable), 5 + i, 0)
             grid.addWidget(symbol_line, 5 + i, 1)
             grid.addWidget(direction_combo, 5 + i, 2)
             grid.addWidget(trading_line, 5 + i, 3)
-            grid.addWidget(inverse_combo, 5 + i, 4)
 
             d = {
                 "variable": variable,
                 "symbol": symbol_line,
                 "direction": direction_combo,
-                "trading": trading_line,
-                "inverse": inverse_combo
+                "trading": trading_line
             }
             self.leg_widgets.append(d)
 
@@ -827,17 +822,11 @@ class SpreadDataDialog(QtWidgets.QDialog):
                     trading_direction = -1
                 trading_multiplier = trading_multiplier * trading_direction
 
-                if d["inverse"].currentText() == "正向":
-                    inverse_contract = False
-                else:
-                    inverse_contract = True
-
                 leg_settings[vt_symbol] = {
                     "variable": d["variable"],
                     "vt_symbol": vt_symbol,
                     "trading_direction": trading_direction,
                     "trading_multiplier": trading_multiplier,
-                    "inverse_contract": inverse_contract
                 }
             except ValueError:
                 pass

@@ -87,6 +87,7 @@ class SpreadEngine(BaseEngine):
 class SpreadDataEngine:
     """"""
     setting_filename = "spread_trading_setting.json"
+    pos_filename = "spread_trading_pos.json"
 
     def __init__(self, spread_engine: SpreadEngine):
         """"""
@@ -99,6 +100,7 @@ class SpreadDataEngine:
         self.legs: Dict[str, LegData] = {}          # vt_symbol: leg
         self.spreads: Dict[str, SpreadData] = {}    # name: spread
         self.symbol_spread_map: Dict[str, List[SpreadData]] = defaultdict(list)
+        self.order_spread_map: Dict[str, SpreadData] = {}
 
         self.tradeid_history: Set[str] = set()
 
@@ -157,6 +159,24 @@ class SpreadDataEngine:
 
         save_json(self.setting_filename, setting)
 
+    def save_pos(self) -> None:
+        """保存价差持仓"""
+        pos_data = {}
+
+        for spread in self.spreads.values():
+            pos_data[spread.name] = spread.leg_pos
+
+        save_json(self.pos_filename, pos_data)
+
+    def load_pos(self) -> None:
+        """加载价差持仓"""
+        pos_data = load_json(self.pos_filename)
+
+        for name, leg_pos in pos_data.items():
+            spread = self.spreads.get(name, None)
+            if spread:
+                spread.leg_pos.update(leg_pos)
+
     def register_event(self) -> None:
         """"""
         self.event_engine.register(EVENT_TICK, self.process_tick_event)
@@ -198,14 +218,14 @@ class SpreadDataEngine:
             return
         self.tradeid_history.add(trade.vt_tradeid)
 
-        leg = self.legs.get(trade.vt_symbol, None)
-        if not leg:
-            return
-        leg.update_trade(trade)
-
-        for spread in self.symbol_spread_map[trade.vt_symbol]:
+        # 查询该笔成交，对应的价差，并更新计算价差持仓
+        spread = self.order_spread_map.get(trade.vt_orderid, None)
+        if spread:
+            spread.update_trade(trade)
             spread.calculate_pos()
             self.put_pos_event(spread)
+
+            self.save_pos()
 
     def process_contract_event(self, event: Event) -> None:
         """"""
@@ -332,6 +352,10 @@ class SpreadDataEngine:
         """"""
         return list(self.spreads.values())
 
+    def update_order_spread_map(self, vt_orderid: str, spread: SpreadData) -> None:
+        """更新委托号对应的价差映射关系"""
+        self.order_spread_map[vt_orderid] = spread
+
 
 class SpreadAlgoEngine:
     """"""
@@ -340,6 +364,7 @@ class SpreadAlgoEngine:
     def __init__(self, spread_engine: SpreadEngine):
         """"""
         self.spread_engine: SpreadEngine = spread_engine
+        self.data_engine: SpreadDataEngine = spread_engine.data_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
 
@@ -569,6 +594,9 @@ class SpreadAlgoEngine:
 
             # Save relationship between orderid and algo.
             self.order_algo_map[vt_orderid] = algo
+
+            # 将委托号和价差的关系缓存下来
+            self.data_engine.update_order_spread_map(vt_orderid, algo.spread)
 
         return vt_orderids
 

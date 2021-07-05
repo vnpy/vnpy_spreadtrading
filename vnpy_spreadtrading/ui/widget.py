@@ -751,7 +751,6 @@ class SpreadDataDialog(QtWidgets.QDialog):
         grid.addWidget(Label("合约代码"), 4, 1)
         grid.addWidget(Label("交易方向"), 4, 2)
         grid.addWidget(Label("交易乘数"), 4, 3)
-        grid.addWidget(Label("合约模式"), 4, 4)
 
         int_validator = QtGui.QIntValidator()
         int_validator.setBottom(0)

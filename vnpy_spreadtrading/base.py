@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Dict, List
 from datetime import datetime
 from enum import Enum
@@ -168,12 +169,6 @@ class SpreadData:
             else:
                 self.passive_legs.append(leg)
 
-            price_multiplier = self.price_multipliers[leg.vt_symbol]
-            if price_multiplier > 0:
-                self.price_formula += f"+{price_multiplier}*{leg.vt_symbol}"
-            else:
-                self.price_formula += f"{price_multiplier}*{leg.vt_symbol}"
-
             trading_multiplier = self.trading_multipliers[leg.vt_symbol]
             if trading_multiplier > 0:
                 self.trading_formula += f"+{trading_multiplier}*{leg.vt_symbol}"
@@ -193,6 +188,8 @@ class SpreadData:
 
         self.net_pos: float = 0
         self.datetime: datetime = None
+
+        self.leg_pos: Dict[str, int] = defaultdict(int)
 
         # 价差计算公式相关
         self.variable_symbols = variable_symbols
@@ -233,10 +230,10 @@ class SpreadData:
             trading_multiplier = self.trading_multipliers[leg.vt_symbol]
             if not trading_multiplier:
                 continue
-    
+
             leg_bid_volume = leg.bid_volume
             leg_ask_volume = leg.ask_volume
-        
+
             if trading_multiplier > 0:
                 adjusted_bid_volume = floor_to(
                     leg_bid_volume / trading_multiplier,
@@ -278,6 +275,13 @@ class SpreadData:
         # Update calculate time
         self.datetime = datetime.now(LOCAL_TZ)
 
+    def update_trade(self, trade: TradeData):
+        """更新委托成交"""
+        if trade.direction == Direction.LONG:
+            self.leg_pos[trade.vt_symbol] += trade.volume
+        else:
+            self.leg_pos[trade.vt_symbol] -= trade.volume
+
     def calculate_pos(self):
         """"""
         long_pos = 0
@@ -291,7 +295,7 @@ class SpreadData:
             if not trading_multiplier:
                 continue
 
-            net_pos = leg.net_pos
+            net_pos = self.leg_pos[leg.vt_symbol]
             adjusted_net_pos = net_pos / trading_multiplier
 
             if adjusted_net_pos > 0:

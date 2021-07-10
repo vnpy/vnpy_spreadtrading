@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 from typing import Dict, List, Set, Callable, TYPE_CHECKING
 from copy import copy

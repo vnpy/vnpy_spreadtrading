@@ -541,39 +541,26 @@ class SpreadAlgoEngine:
         lock: bool
     ) -> List[str]:
         """"""
-        holding = self.offset_converter.get_position_holding(vt_symbol)
+        # 创建原始委托请求
         contract = self.main_engine.get_contract(vt_symbol)
-
-        if direction == Direction.LONG:
-            available = holding.short_pos - holding.short_pos_frozen
-        else:
-            available = holding.long_pos - holding.long_pos_frozen
-
-        # If no position to close, just open new
-        if not available:
-            offset = Offset.OPEN
-        # If enougth position to close, just close old
-        elif volume < available:
-            offset = Offset.CLOSE
-        # Otherwise, just close existing position
-        else:
-            volume = available
-            offset = Offset.CLOSE
 
         original_req = OrderRequest(
             symbol=contract.symbol,
             exchange=contract.exchange,
             direction=direction,
-            offset=offset,
+            offset=Offset.OPEN,
             type=OrderType.LIMIT,
             price=price,
             volume=volume,
             reference=f"{APP_NAME}_{algo.spread_name}"
         )
 
-        # Convert with offset converter
+        # 判断使用净仓还是锁仓模式
+        net = not lock
+
+        # 执行委托转换
         req_list = self.offset_converter.convert_order_request(
-            original_req, lock)
+            original_req, lock, net)
 
         # Send Orders
         vt_orderids = []

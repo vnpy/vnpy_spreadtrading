@@ -543,7 +543,8 @@ class BacktestingEngine:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ) -> str:
         """"""
         self.algo_count += 1
@@ -559,7 +560,8 @@ class BacktestingEngine:
             volume,
             payup,
             interval,
-            lock
+            lock,
+            extra
         )
 
         self.algos[algoid] = algo

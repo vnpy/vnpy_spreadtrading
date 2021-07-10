@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TYPE_CHECKING
 
 from vnpy.trader.constant import Direction
 from vnpy.trader.object import (TickData, OrderData, TradeData)
@@ -7,6 +7,9 @@ from vnpy.trader.utility import round_to
 from .template import SpreadAlgoTemplate
 from .base import SpreadData
 
+if TYPE_CHECKING:
+    from .engine import SpreadAlgoEngine
+
 
 class SpreadTakerAlgo(SpreadAlgoTemplate):
     """"""
@@ -14,7 +17,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
     def __init__(
         self,
-        algo_engine: Any,
+        algo_engine: "SpreadAlgoEngine",
         algoid: str,
         spread: SpreadData,
         direction: Direction,
@@ -22,13 +25,21 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ):
         """"""
         super().__init__(
-            algo_engine, algoid, spread,
-            direction, price, volume,
-            payup, interval, lock
+            algo_engine,
+            algoid,
+            spread,
+            direction,
+            price,
+            volume,
+            payup,
+            interval,
+            lock,
+            extra
         )
 
     def on_tick(self, tick: TickData):

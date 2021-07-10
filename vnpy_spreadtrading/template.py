@@ -30,7 +30,8 @@ class SpreadAlgoTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ):
         """"""
         self.algo_engine: "SpreadAlgoEngine" = algo_engine

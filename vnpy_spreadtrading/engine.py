@@ -473,7 +473,8 @@ class SpreadAlgoEngine:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ) -> str:
         # Find spread object
         spread = self.spreads.get(spread_name, None)
@@ -496,7 +497,8 @@ class SpreadAlgoEngine:
             volume,
             payup,
             interval,
-            lock
+            lock,
+            extra
         )
         self.algos[algoid] = algo
 
@@ -939,7 +941,8 @@ class SpreadStrategyEngine:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ) -> str:
         """"""
         algoid = self.spread_engine.start_algo(
@@ -949,7 +952,8 @@ class SpreadStrategyEngine:
             volume,
             payup,
             interval,
-            lock
+            lock,
+            extra
         )
 
         self.algo_strategy_map[algoid] = strategy

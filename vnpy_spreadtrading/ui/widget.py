@@ -297,13 +297,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
 
     def start_algo(self):
         """"""
-        name = self.name_line.text()
-        direction = Direction(self.direction_combo.currentText())
-        price = float(self.price_line.text())
-        volume = float(self.volume_line.text())
-        payup = int(self.payup_line.text())
-        interval = int(self.interval_line.text())
-
         lock_str = self.lock_combo.currentText()
         if lock_str == "是":
             lock = True
@@ -311,7 +304,14 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             lock = False
 
         self.spread_engine.start_algo(
-            name, direction, price, volume, payup, interval, lock
+            spread_name=self.name_line.text(),
+            direction=Direction(self.direction_combo.currentText()),
+            price=float(self.price_line.text()),
+            volume=float(self.volume_line.text()),
+            payup=int(self.payup_line.text()),
+            interval=int(self.interval_line.text()),
+            lock=lock,
+            extra={}
         )
 
     def add_spread(self):

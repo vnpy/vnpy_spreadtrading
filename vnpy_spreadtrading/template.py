@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from typing import Dict, List, Set, Callable
+from typing import Dict, List, Set, Callable, TYPE_CHECKING
 from copy import copy
 
 from vnpy.trader.object import (
@@ -11,6 +11,9 @@ from vnpy.trader.utility import virtual, floor_to, ceil_to, round_to
 
 from .base import SpreadData
 
+if TYPE_CHECKING:
+    from .engine import SpreadAlgoEngine, SpreadStrategyEngine
+
 
 class SpreadAlgoTemplate:
     """
@@ -20,7 +23,7 @@ class SpreadAlgoTemplate:
 
     def __init__(
         self,
-        algo_engine,
+        algo_engine: "SpreadAlgoEngine",
         algoid: str,
         spread: SpreadData,
         direction: Direction,
@@ -28,10 +31,10 @@ class SpreadAlgoTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool,
+        lock: bool
     ):
         """"""
-        self.algo_engine = algo_engine
+        self.algo_engine: "SpreadAlgoEngine" = algo_engine
         self.algoid: str = algoid
 
         self.spread: SpreadData = spread
@@ -401,19 +404,19 @@ class SpreadStrategyTemplate:
 
     def __init__(
         self,
-        strategy_engine,
+        strategy_engine: "SpreadStrategyEngine",
         strategy_name: str,
         spread: SpreadData,
         setting: dict
     ):
         """"""
-        self.strategy_engine = strategy_engine
-        self.strategy_name = strategy_name
-        self.spread = spread
-        self.spread_name = spread.name
+        self.strategy_engine: "SpreadStrategyEngine" = strategy_engine
+        self.strategy_name: str = strategy_name
+        self.spread: SpreadData = spread
+        self.spread_name: str = spread.name
 
-        self.inited = False
-        self.trading = False
+        self.inited: bool = False
+        self.trading: bool = False
 
         self.variables = copy(self.variables)
         self.variables.insert(0, "inited")

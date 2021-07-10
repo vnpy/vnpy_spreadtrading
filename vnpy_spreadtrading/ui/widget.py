@@ -246,9 +246,9 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         button_start = QtWidgets.QPushButton("启动")
         button_start.clicked.connect(self.start_algo)
 
-        self.lock_combo = QtWidgets.QComboBox()
-        self.lock_combo.addItems(
-            ["否", "是"]
+        self.mode_combo = QtWidgets.QComboBox()
+        self.mode_combo.addItems(
+            ["净仓", "锁仓"]
         )
 
         self.class_combo = QtWidgets.QComboBox()
@@ -278,7 +278,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         form.addRow("数量", self.volume_line)
         form.addRow("超价", self.payup_line)
         form.addRow("间隔", self.interval_line)
-        form.addRow("锁仓", self.lock_combo)
+        form.addRow("模式", self.mode_combo)
         form.addRow(button_start)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -297,11 +297,11 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
 
     def start_algo(self):
         """"""
-        lock_str = self.lock_combo.currentText()
-        if lock_str == "是":
-            lock = True
-        else:
+        lock_str = self.mode_combo.currentText()
+        if lock_str == "锁仓":
             lock = False
+        else:
+            lock = True
 
         self.spread_engine.start_algo(
             spread_name=self.name_line.text(),

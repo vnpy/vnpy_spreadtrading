@@ -45,11 +45,11 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
     def on_tick(self, tick: TickData):
         """"""
         # Return if there are any existing orders
-        if not self.check_order_finished():
+        if not self.is_order_finished():
             return
 
         # Hedge if active leg is not fully hedged
-        if not self.check_hedge_finished():
+        if not self.is_hedge_finished():
             self.hedge_passive_legs()
             return
 
@@ -72,11 +72,11 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
             return
 
         # Do nothing if still any existing orders
-        if not self.check_order_finished():
+        if not self.is_order_finished():
             return
 
         # Hedge passive legs if necessary
-        if not self.check_hedge_finished():
+        if not self.is_hedge_finished():
             self.hedge_passive_legs()
 
     def on_trade(self, trade: TradeData):
@@ -85,7 +85,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
     def on_interval(self):
         """"""
-        if not self.check_order_finished():
+        if not self.is_order_finished():
             self.cancel_all_order()
 
     def take_active_leg(self):

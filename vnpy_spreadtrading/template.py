@@ -52,11 +52,12 @@ class SpreadAlgoTemplate:
         else:
             self.target = -volume
 
-        self.status: Status = Status.NOTTRADED  # Algo status
-        self.count: int = 0                     # Timer count
-        self.traded: float = 0                  # Volume traded
-        self.traded_volume: float = 0           # Volume traded (Abs value)
-        self.traded_price: float = 0            # Spread fill price
+        self.status: Status = Status.NOTTRADED  # 算法状态
+        self.count: int = 0                     # 读秒计数
+        self.traded: float = 0                  # 成交数量
+        self.traded_volume: float = 0           # 成交数量（绝对值）
+        self.traded_price: float = 0            # 成交价格
+        self.stopped: bool = False              # 是否已被用户停止算法
 
         self.leg_traded: Dict[str, float] = defaultdict(float)
         self.leg_cost: Dict[str, float] = defaultdict(float)
@@ -67,15 +68,15 @@ class SpreadAlgoTemplate:
 
         self.write_log("算法已启动")
 
-    def is_active(self):
-        """"""
+    def is_active(self) -> bool:
+        """判断算法是否处于运行中"""
         if self.status not in [Status.CANCELLED, Status.ALLTRADED]:
             return True
         else:
             return False
 
-    def check_order_finished(self):
-        """"""
+    def is_order_finished(self) -> bool:
+        """检查委托是否全部结束"""
         finished = True
 
         for leg in self.spread.legs.values():
@@ -87,8 +88,8 @@ class SpreadAlgoTemplate:
 
         return finished
 
-    def check_hedge_finished(self):
-        """"""
+    def is_hedge_finished(self) -> bool:
+        """检查当前各条腿是否平衡"""
         active_symbol = self.spread.active_leg.vt_symbol
         active_traded = self.leg_traded[active_symbol]
 
@@ -116,31 +117,27 @@ class SpreadAlgoTemplate:
 
         return finished
 
-    def check_algo_finished(self) -> bool:
-        """"""
-        finished = True
-
-        for vt_symbol, leg in self.spread.legs.items():
-            leg_traded = self.leg_traded[vt_symbol]
-
-            trading_multiplier = self.spread.trading_multipliers[vt_symbol]
-
-            leg_target = self.target * trading_multiplier
-            min_change = leg.min_volume
-
-            leg_left = leg_target - leg_traded
-            if abs(leg_left) >= min_change:
-                finished = False
-
-        return finished
-
-    def stop(self):
-        """"""
-        if self.is_active():
-            self.cancel_all_order()
+    def check_algo_cancelled(self):
+        """检查算法是否已停止"""
+        if (
+            self.stopped
+            and self.is_order_finished()
+            and self.is_hedge_finished()
+        ):
             self.status = Status.CANCELLED
             self.write_log("算法已停止")
             self.put_event()
+
+    def stop(self):
+        """"""
+        if not self.is_active():
+            return
+
+        self.write_log("算法停止中")
+        self.stopped = True
+        self.cancel_all_order()
+
+        self.check_algo_cancelled()
 
     def update_tick(self, tick: TickData):
         """"""
@@ -207,6 +204,9 @@ class SpreadAlgoTemplate:
 
         self.on_order(order)
 
+        # 如果在停止任务，则检查是否已经可以停止算法
+        self.check_algo_cancelled()
+
     def update_timer(self):
         """"""
         self.count += 1
@@ -240,22 +240,13 @@ class SpreadAlgoTemplate:
         direction: Direction,
     ):
         """"""
+        # 如果已经进入停止任务，禁止主动腿发单
+        if self.stopped and vt_symbol == self.spread.active_leg.vt_symbol:
+            return
+
         # Round order volume to min_volume of contract
         leg = self.spread.legs[vt_symbol]
         volume = round_to(volume, leg.min_volume)
-
-        # If new order volume is 0, then check if algo finished
-        if not volume:
-            finished = self.check_algo_finished()
-
-            if finished:
-                self.status = Status.ALLTRADED
-                self.put_event()
-
-                msg = "各腿剩余数量均不足最小下单量，算法执行结束"
-                self.write_log(msg)
-
-            return
 
         # Round order price to pricetick of contract
         price = round_to(price, leg.pricetick)

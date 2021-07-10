@@ -572,7 +572,8 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool
+        lock: bool,
+        extra: dict
     ) -> str:
         """"""
         if not self.trading:
@@ -586,7 +587,8 @@ class SpreadStrategyTemplate:
             volume,
             payup,
             interval,
-            lock
+            lock,
+            extra
         )
 
         self.algoids.add(algoid)
@@ -599,12 +601,16 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool = False
+        lock: bool = False,
+        extra: dict = None
     ) -> str:
         """"""
+        if not extra:
+            extra = {}
+
         return self.start_algo(
             Direction.LONG, price, volume,
-            payup, interval, lock
+            payup, interval, lock, extra
         )
 
     def start_short_algo(
@@ -613,12 +619,16 @@ class SpreadStrategyTemplate:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool = False
+        lock: bool = False,
+        extra: dict = None
     ) -> str:
         """"""
+        if not extra:
+            extra = None
+
         return self.start_algo(
             Direction.SHORT, price, volume,
-            payup, interval, lock
+            payup, interval, lock, extra
         )
 
     def stop_algo(self, algoid: str):

@@ -238,6 +238,7 @@ class SpreadAlgoTemplate:
         price: float,
         volume: float,
         direction: Direction,
+        fak: bool = False
     ):
         """"""
         # 如果已经进入停止任务，禁止主动腿发单
@@ -258,7 +259,8 @@ class SpreadAlgoTemplate:
             price,
             volume,
             direction,
-            self.lock
+            self.lock,
+            fak
         )
 
         self.leg_orders[vt_symbol].extend(vt_orderids)

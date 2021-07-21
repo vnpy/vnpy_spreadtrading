@@ -540,18 +540,24 @@ class SpreadAlgoEngine:
         price: float,
         volume: float,
         direction: Direction,
-        lock: bool
+        lock: bool,
+        fak: bool
     ) -> List[str]:
         """"""
         # 创建原始委托请求
         contract = self.main_engine.get_contract(vt_symbol)
+
+        if fak:
+            order_type = OrderType.FAK
+        else:
+            order_type = OrderType.LIMIT
 
         original_req = OrderRequest(
             symbol=contract.symbol,
             exchange=contract.exchange,
             direction=direction,
             offset=Offset.OPEN,
-            type=OrderType.LIMIT,
+            type=order_type,
             price=price,
             volume=volume,
             reference=f"{APP_NAME}_{algo.spread_name}"

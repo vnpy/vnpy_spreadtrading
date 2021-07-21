@@ -224,14 +224,6 @@ class SpreadAlgoTemplate:
         """"""
         self.algo_engine.write_algo_log(self, msg)
 
-    def send_long_order(self, vt_symbol: str, price: float, volume: float):
-        """"""
-        self.send_order(vt_symbol, price, volume, Direction.LONG)
-
-    def send_short_order(self, vt_symbol: str, price: float, volume: float):
-        """"""
-        self.send_order(vt_symbol, price, volume, Direction.SHORT)
-
     def send_order(
         self,
         vt_symbol: str,

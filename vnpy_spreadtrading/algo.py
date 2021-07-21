@@ -148,7 +148,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
         if leg_volume > 0:
             price = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup
-            self.send_long_order(leg.vt_symbol, price, abs(leg_volume))
+            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.LONG)
         elif leg_volume < 0:
             price = leg_tick.bid_price_1 - leg_contract.pricetick * self.payup
-            self.send_short_order(leg.vt_symbol, price, abs(leg_volume))
+            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.SHORT)

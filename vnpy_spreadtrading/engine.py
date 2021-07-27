@@ -107,6 +107,7 @@ class SpreadDataEngine:
     def start(self):
         """"""
         self.load_setting()
+        self.load_pos()
         self.register_event()
 
         self.write_log("价差数据引擎启动成功")

@@ -414,15 +414,21 @@ def load_bar_data(
         spread_value = 0
         spread_available = True
 
-        for leg in spread.legs.values():
+        leg_data = {}
+        for variable, leg in spread.variable_legs.items():
             leg_bar = leg_bars[leg.vt_symbol].get(dt, None)
-
+            
             if leg_bar:
-                price_multiplier = spread.price_multipliers[leg.vt_symbol]
-                spread_price += price_multiplier * leg_bar.close_price
-                spread_value += abs(price_multiplier) * leg_bar.close_price
+                # 缓存该腿当前的价格
+                leg_data[variable] = leg_bar.close_price
+
+                # 基于交易乘数累计价值
+                trading_multiplier = spread.trading_multipliers[leg.vt_symbol]
+                spread_value += trading_multiplier * leg_bar.close_price
             else:
                 spread_available = False
+
+        spread_price = spread.parse_formula(spread.price_code, leg_data)
 
         if spread_available:
             if pricetick:

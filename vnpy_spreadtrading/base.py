@@ -428,9 +428,8 @@ def load_bar_data(
             else:
                 spread_available = False
 
-        spread_price = spread.parse_formula(spread.price_code, leg_data)
-
         if spread_available:
+            spread_price = spread.parse_formula(spread.price_code, leg_data)
             if pricetick:
                 spread_price = round_to(spread_price, pricetick)
 

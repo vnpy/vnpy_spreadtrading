@@ -202,8 +202,13 @@ class SpreadData:
             leg = self.legs[vt_symbol]
             self.variable_legs[variable] = leg
 
-    def calculate_price(self):
-        """"""
+    def calculate_price(self) -> bool:
+        """
+        计算价差盘口
+
+        1. 如果各条腿价格均有效，则计算成功，返回True
+        2. 反之只要有一条腿的价格无效，则计算失败，返回False
+        """
         self.clear_price()
 
         # Go through all legs to calculate price
@@ -215,7 +220,7 @@ class SpreadData:
             # Filter not all leg price data has been received
             if not leg.bid_volume or not leg.ask_volume:
                 self.clear_price()
-                return
+                return False
 
             # Generate price dict for calculating spread bid/ask
             variable_direction = self.variable_directions[variable]
@@ -274,6 +279,8 @@ class SpreadData:
 
         # Update calculate time
         self.datetime = datetime.now(LOCAL_TZ)
+
+        return True
 
     def update_trade(self, trade: TradeData):
         """更新委托成交"""

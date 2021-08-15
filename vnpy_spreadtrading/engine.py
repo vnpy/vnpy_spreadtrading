@@ -199,8 +199,9 @@ class SpreadDataEngine:
         leg.update_tick(tick)
 
         for spread in self.symbol_spread_map[tick.vt_symbol]:
-            spread.calculate_price()
-            self.put_data_event(spread)
+            # 只有能成功计算出价差盘口时，才会送事件
+            if spread.calculate_price():
+                self.put_data_event(spread)
 
     def process_position_event(self, event: Event) -> None:
         """"""

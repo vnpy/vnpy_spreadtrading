@@ -46,6 +46,10 @@ class SpreadEngine(BaseEngine):
 
         self.active = False
 
+        self.offset_converter: OffsetConverter = OffsetConverter(
+            self.main_engine
+        )
+
         self.data_engine: SpreadDataEngine = SpreadDataEngine(self)
         self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
         self.strategy_engine: SpreadStrategyEngine = SpreadStrategyEngine(self)
@@ -368,6 +372,7 @@ class SpreadAlgoEngine:
         self.data_engine: SpreadDataEngine = spread_engine.data_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
+        self.offset_converter: OffsetConverter = spread_engine.offset_converter
 
         self.write_log = spread_engine.write_log
 
@@ -379,10 +384,6 @@ class SpreadAlgoEngine:
 
         self.algo_count: int = 0
         self.vt_tradeids: Set = set()
-
-        self.offset_converter: OffsetConverter = OffsetConverter(
-            self.main_engine
-        )
 
     def start(self):
         """"""
@@ -623,6 +624,7 @@ class SpreadStrategyEngine:
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
+        self.offset_converter: OffsetConverter = spread_engine.offset_converter
 
         self.write_log = spread_engine.write_log
 

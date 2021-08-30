@@ -450,6 +450,7 @@ class BacktestingEngine:
         self.spread.bid_volume = tick.bid_volume_1
         self.spread.ask_price = tick.ask_price_1
         self.spread.ask_volume = tick.ask_volume_1
+        self.spread.datetime = tick.datetime
 
         self.strategy.on_spread_data()
 

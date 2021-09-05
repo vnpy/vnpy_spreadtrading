@@ -11,8 +11,8 @@ from vnpy.trader.object import (
 )
 from vnpy.trader.constant import Direction, Offset, Exchange, Interval
 from vnpy.trader.utility import floor_to, ceil_to, round_to, extract_vt_symbol
-from vnpy.trader.database import database_manager
-from vnpy.trader.rqdata import rqdata_client
+from vnpy.trader.database import BaseDatabase, get_database
+from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
 EVENT_SPREAD_DATA = "eSpreadData"
@@ -393,6 +393,8 @@ def load_bar_data(
     pricetick: float = 0
 ):
     """"""
+    database: BaseDatabase = get_database()
+
     # Load bar data of each spread leg
     leg_bars: Dict[str, Dict] = {}
 
@@ -406,7 +408,7 @@ def load_bar_data(
 
         # If failed, query history from database
         if not bar_data:
-            bar_data = database_manager.load_bar_data(
+            bar_data = database.load_bar_data(
                 symbol, exchange, interval, start, end
             )
 
@@ -424,7 +426,7 @@ def load_bar_data(
         leg_data = {}
         for variable, leg in spread.variable_legs.items():
             leg_bar = leg_bars[leg.vt_symbol].get(dt, None)
-            
+
             if leg_bar:
                 # 缓存该腿当前的价格
                 leg_data[variable] = leg_bar.close_price
@@ -464,7 +466,8 @@ def load_tick_data(
     end: datetime
 ):
     """"""
-    return database_manager.load_tick_data(
+    database: BaseDatabase = get_database()
+    return database.load_tick_data(
         spread.name, Exchange.LOCAL, start, end
     )
 
@@ -479,8 +482,7 @@ def query_bar_from_rq(
     """
     Query bar data from RQData.
     """
-    if not rqdata_client.inited:
-        rqdata_client.init()
+    datafeed: BaseDatafeed = get_datafeed()
 
     req = HistoryRequest(
         symbol=symbol,
@@ -489,5 +491,5 @@ def query_bar_from_rq(
         start=start,
         end=end
     )
-    data = rqdata_client.query_history(req)
+    data = datafeed.query_history(req)
     return data

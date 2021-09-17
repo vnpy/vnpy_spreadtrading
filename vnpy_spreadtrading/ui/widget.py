@@ -299,9 +299,9 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         """"""
         lock_str = self.mode_combo.currentText()
         if lock_str == "锁仓":
-            lock = False
-        else:
             lock = True
+        else:
+            lock = False
 
         self.spread_engine.start_algo(
             spread_name=self.name_line.text(),

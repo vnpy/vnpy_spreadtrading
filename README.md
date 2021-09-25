@@ -17,7 +17,7 @@
 
 ## 安装
 
-安装需要基于2.4.0版本以上的[VN Studio](https://www.vnpy.com)。
+安装需要基于2.6.0版本以上的[VN Studio](https://www.vnpy.com)。
 
 直接使用pip命令：
 

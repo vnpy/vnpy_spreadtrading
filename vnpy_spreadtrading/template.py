@@ -244,6 +244,14 @@ class SpreadAlgoTemplate:
         # Round order price to pricetick of contract
         price = round_to(price, leg.pricetick)
 
+        # 检查价格是否超过涨跌停板
+        tick: TickData = self.get_tick(vt_symbol)
+
+        if direction == Direction.LONG and tick.limit_up:
+            price = min(price, tick.limit_up)
+        elif direction == Direction.SHORT and tick.limit_down:
+            price = max(price, tick.limit_down)
+
         # Otherwise send order
         vt_orderids = self.algo_engine.send_order(
             self,

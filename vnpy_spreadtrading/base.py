@@ -491,5 +491,5 @@ def query_bar_from_rq(
         start=start,
         end=end
     )
-    data = datafeed.query_history(req)
+    data = datafeed.query_bar_history(req)
     return data

@@ -90,6 +90,8 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
     def take_active_leg(self):
         """"""
+        active_symbol = self.spread.active_leg.vt_symbol
+
         # Calculate spread order volume of new round trade
         spread_volume_left = self.target - self.traded
 
@@ -102,13 +104,26 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
         # Calculate active leg order volume
         leg_order_volume = self.spread.calculate_leg_volume(
-            self.spread.active_leg.vt_symbol,
+            active_symbol,
             spread_order_volume
         )
 
+        # Check active leg volume left
+        active_volume_target = self.spread.calculate_leg_volume(
+            active_symbol,
+            self.target
+        )
+        active_volume_traded = self.leg_traded[active_symbol]
+        active_volume_left = active_volume_target - active_volume_traded
+
+        if self.direction == Direction.LONG:
+            leg_order_volume = min(leg_order_volume, active_volume_left)
+        else:
+            leg_order_volume = max(leg_order_volume, active_volume_left)
+
         # Send active leg order
         self.send_leg_order(
-            self.spread.active_leg.vt_symbol,
+            active_symbol,
             leg_order_volume
         )
 

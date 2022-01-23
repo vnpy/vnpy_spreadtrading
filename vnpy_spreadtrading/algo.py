@@ -116,7 +116,8 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         active_volume_traded = self.leg_traded[active_symbol]
         active_volume_left = active_volume_target - active_volume_traded
 
-        if self.direction == Direction.LONG:
+        # Limit order volume to total volume left of the active leg
+        if active_volume_left > 0:
             leg_order_volume = min(leg_order_volume, active_volume_left)
         else:
             leg_order_volume = max(leg_order_volume, active_volume_left)

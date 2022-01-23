@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime
-from typing import Callable, Type
+from typing import Callable, Type, Dict, List
 
 import numpy as np
 from pandas import DataFrame
@@ -44,14 +44,14 @@ class BacktestingEngine:
         self.callback = None
         self.history_data = []
 
-        self.algo_count = 0
-        self.algos = {}
-        self.active_algos = {}
+        self.algo_count: int = 0
+        self.algos: Dict[str, SpreadAlgoTemplate] = {}
+        self.active_algos: Dict[str, SpreadAlgoTemplate] = {}
 
-        self.trade_count = 0
-        self.trades = {}
+        self.trade_count: int = 0
+        self.trades: Dict[str, TradeData] = {}
 
-        self.logs = []
+        self.logs: List[str] = []
 
         self.daily_results = {}
         self.daily_df = None
@@ -483,7 +483,9 @@ class BacktestingEngine:
                 continue
 
             # Push order udpate with status "all traded" (filled).
-            algo.traded = algo.volume
+            algo.traded = algo.target
+            algo.traded_volume = algo.volume
+            algo.traded_price = algo.price
             algo.status = Status.ALLTRADED
             self.strategy.update_spread_algo(algo)
 

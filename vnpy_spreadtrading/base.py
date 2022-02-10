@@ -383,7 +383,6 @@ class BacktestingMode(Enum):
     TICK = 2
 
 
-@lru_cache(maxsize=999)
 def load_bar_data(
     spread: SpreadData,
     interval: Interval,
@@ -458,7 +457,6 @@ def load_bar_data(
     return spread_bars
 
 
-@lru_cache(maxsize=999)
 def load_tick_data(
     spread: SpreadData,
     start: datetime,

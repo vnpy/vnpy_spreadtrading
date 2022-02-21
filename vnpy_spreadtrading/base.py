@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Dict, List
 from datetime import datetime
 from enum import Enum
-from functools import lru_cache
 from tzlocal import get_localzone
 
 from vnpy.trader.object import (
@@ -194,7 +193,7 @@ class SpreadData:
         self.variable_symbols = variable_symbols
         self.variable_directions = variable_directions
         self.price_formula = price_formula
-        self.price_code = compile(price_formula, __name__, "eval")
+        self.price_code = price_formula
 
         self.variable_legs = {}
         for variable, vt_symbol in variable_symbols.items():

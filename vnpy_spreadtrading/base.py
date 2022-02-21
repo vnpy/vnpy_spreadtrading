@@ -142,10 +142,12 @@ class SpreadData:
         price_formula: str,
         trading_multipliers: Dict[str, int],
         active_symbol: str,
-        min_volume: float
+        min_volume: float,
+        compile_formula: bool = True
     ):
         """"""
         self.name: str = name
+        self.compile_formula: bool = compile_formula
 
         self.legs: Dict[str, LegData] = {}
         self.active_leg: LegData = None
@@ -193,7 +195,13 @@ class SpreadData:
         self.variable_symbols = variable_symbols
         self.variable_directions = variable_directions
         self.price_formula = price_formula
-        self.price_code = price_formula
+
+        # 实盘时编译公式，加速计算
+        if compile_formula:
+            self.price_code = compile(price_formula, __name__, "eval")
+        # 回测时不编译公式，从而支持多进程优化
+        else:
+            self.price_code = price_formula
 
         self.variable_legs = {}
         for variable, vt_symbol in variable_symbols.items():

@@ -13,6 +13,13 @@ from vnpy.trader.object import TradeData, BarData, TickData
 
 from .template import SpreadStrategyTemplate, SpreadAlgoTemplate
 from .base import SpreadData, BacktestingMode, load_bar_data, load_tick_data
+from vnpy.trader.optimize import (
+    OptimizationSetting,
+    check_optimization_setting,
+    run_bf_optimization,
+    run_ga_optimization
+)
+from functools import partial
 
 
 class BacktestingEngine:
@@ -420,6 +427,48 @@ class BacktestingEngine:
         fig.update_layout(height=1000, width=1000)
         fig.show()
 
+    def run_bf_optimization(self, optimization_setting: OptimizationSetting, output=True):
+        """"""
+        if not check_optimization_setting(optimization_setting):
+            return
+
+        evaluate_func: callable = wrap_evaluate(self, optimization_setting.target_name)
+        results = run_bf_optimization(
+            evaluate_func,
+            optimization_setting,
+            get_target_value,
+            output=self.output,
+        )
+
+        if output:
+            for result in results:
+                msg: str = f"参数：{result[0]}, 目标：{result[1]}"
+                self.output(msg)
+
+        return results
+
+    run_optimization = run_bf_optimization
+
+    def run_ga_optimization(self, optimization_setting: OptimizationSetting, output=True):
+        """"""
+        if not check_optimization_setting(optimization_setting):
+            return
+
+        evaluate_func: callable = wrap_evaluate(self, optimization_setting.target_name)
+        results = run_ga_optimization(
+            evaluate_func,
+            optimization_setting,
+            get_target_value,
+            output=self.output
+        )
+
+        if output:
+            for result in results:
+                msg: str = f"参数：{result[0]}, 目标：{result[1]}"
+                self.output(msg)
+
+        return results
+
     def update_daily_close(self, price: float):
         """"""
         d = self.datetime.date()
@@ -697,3 +746,72 @@ class DailyResult:
         # Net pnl takes account of commission and slippage cost
         self.total_pnl = self.trading_pnl + self.holding_pnl
         self.net_pnl = self.total_pnl - self.commission - self.slippage
+
+
+def evaluate(
+    target_name: str,
+    strategy_class: SpreadStrategyTemplate,
+    spread: SpreadData,
+    interval: Interval,
+    start: datetime,
+    rate: float,
+    slippage: float,
+    size: float,
+    pricetick: float,
+    capital: int,
+    end: datetime,
+    setting: dict
+):
+    """
+    Function for running in multiprocessing.pool
+    """
+    engine = BacktestingEngine()
+
+    engine.set_parameters(
+        spread=spread,
+        interval=interval,
+        start=start,
+        rate=rate,
+        slippage=slippage,
+        size=size,
+        pricetick=pricetick,
+        capital=capital,
+        end=end,
+    )
+
+    engine.add_strategy(strategy_class, setting)
+    engine.load_data()
+    engine.run_backtesting()
+    engine.calculate_result()
+    statistics = engine.calculate_statistics(output=False)
+
+    target_value = statistics[target_name]
+    return (str(setting), target_value, statistics)
+
+
+def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> callable:
+    """
+    Wrap evaluate function with given setting from backtesting engine.
+    """
+    func: callable = partial(
+        evaluate,
+        target_name,
+        engine.strategy_class,
+        engine.spread,
+        engine.interval,
+        engine.start,
+        engine.rate,
+        engine.slippage,
+        engine.size,
+        engine.pricetick,
+        engine.capital,
+        engine.end
+    )
+    return func
+
+
+def get_target_value(result: list) -> float:
+    """
+    Get target value for sorting optimization results.
+    """
+    return result[1]

@@ -1,8 +1,7 @@
 import traceback
 import importlib
 import os
-from types import ModuleType
-from typing import List, Dict, Set, Callable, Any
+from typing import List, Dict, Set, Callable, Any, Type
 from collections import defaultdict
 from copy import copy
 from pathlib import Path
@@ -16,9 +15,8 @@ from vnpy.trader.event import (
 )
 from vnpy.trader.utility import load_json, save_json
 from vnpy.trader.object import (
-    TickData, ContractData, BarData,
-    PositionData, OrderData, TradeData, LogData,
-    SubscribeRequest, OrderRequest, CancelRequest
+    TickData, ContractData, LogData,
+    SubscribeRequest, OrderRequest
 )
 from vnpy.trader.constant import (
     Direction, Offset, OrderType, Interval
@@ -36,17 +34,17 @@ from .template import SpreadAlgoTemplate, SpreadStrategyTemplate
 from .algo import SpreadTakerAlgo
 
 
-APP_NAME: str = "SpreadTrading"
+APP_NAME = "SpreadTrading"
 
 
 class SpreadEngine(BaseEngine):
     """"""
 
-    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine):
         """Constructor"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
-        self.active: bool = False
+        self.active = False
 
         self.offset_converter: OffsetConverter = OffsetConverter(
             self.main_engine
@@ -64,7 +62,7 @@ class SpreadEngine(BaseEngine):
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
 
-    def start(self) -> None:
+    def start(self):
         """"""
         if self.active:
             return
@@ -74,28 +72,28 @@ class SpreadEngine(BaseEngine):
         self.algo_engine.start()
         self.strategy_engine.start()
 
-    def stop(self) -> None:
+    def stop(self):
         """"""
         self.data_engine.stop()
         self.algo_engine.stop()
         self.strategy_engine.stop()
 
-    def write_log(self, msg: str) -> None:
+    def write_log(self, msg: str):
         """"""
-        log: LegData = LogData(
+        log = LogData(
             msg=msg,
             gateway_name=APP_NAME
         )
-        event: Event = Event(EVENT_SPREAD_LOG, log)
+        event = Event(EVENT_SPREAD_LOG, log)
         self.event_engine.put(event)
 
 
 class SpreadDataEngine:
     """"""
-    setting_filename: str = "spread_trading_setting.json"
-    pos_filename: str = "spread_trading_pos.json"
+    setting_filename = "spread_trading_setting.json"
+    pos_filename = "spread_trading_pos.json"
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
+    def __init__(self, spread_engine: SpreadEngine):
         """"""
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
@@ -105,12 +103,12 @@ class SpreadDataEngine:
 
         self.legs: Dict[str, LegData] = {}          # vt_symbol: leg
         self.spreads: Dict[str, SpreadData] = {}    # name: spread
-        self.symbol_spread_map: defaultdict = defaultdict(list)
+        self.symbol_spread_map: Dict[str, List[SpreadData]] = defaultdict(list)
         self.order_spread_map: Dict[str, SpreadData] = {}
 
         self.tradeid_history: Set[str] = set()
 
-    def start(self) -> None:
+    def start(self):
         """"""
         self.load_setting()
         self.load_pos()
@@ -118,13 +116,13 @@ class SpreadDataEngine:
 
         self.write_log("价差数据引擎启动成功")
 
-    def stop(self) -> None:
+    def stop(self):
         """"""
         pass
 
     def load_setting(self) -> None:
         """"""
-        setting: dict = load_json(self.setting_filename)
+        setting = load_json(self.setting_filename)
 
         for spread_setting in setting:
             self.add_spread(
@@ -138,15 +136,15 @@ class SpreadDataEngine:
 
     def save_setting(self) -> None:
         """"""
-        setting: list = []
+        setting = []
 
         for spread in self.spreads.values():
-            leg_settings: list = []
+            leg_settings = []
             for variable, vt_symbol in spread.variable_symbols.items():
-                trading_direction: int = spread.variable_directions[variable]
-                trading_multiplier: int = spread.trading_multipliers[vt_symbol]
+                trading_direction = spread.variable_directions[variable]
+                trading_multiplier = spread.trading_multipliers[vt_symbol]
 
-                leg_setting: dict = {
+                leg_setting = {
                     "variable": variable,
                     "vt_symbol": vt_symbol,
                     "trading_direction": trading_direction,
@@ -154,7 +152,7 @@ class SpreadDataEngine:
                 }
                 leg_settings.append(leg_setting)
 
-            spread_setting: dict = {
+            spread_setting = {
                 "name": spread.name,
                 "leg_settings": leg_settings,
                 "price_formula": spread.price_formula,
@@ -168,7 +166,7 @@ class SpreadDataEngine:
 
     def save_pos(self) -> None:
         """保存价差持仓"""
-        pos_data: dict = {}
+        pos_data = {}
 
         for spread in self.spreads.values():
             pos_data[spread.name] = spread.leg_pos
@@ -177,10 +175,10 @@ class SpreadDataEngine:
 
     def load_pos(self) -> None:
         """加载价差持仓"""
-        pos_data: dict = load_json(self.pos_filename)
+        pos_data = load_json(self.pos_filename)
 
         for name, leg_pos in pos_data.items():
-            spread: SpreadData = self.spreads.get(name, None)
+            spread = self.spreads.get(name, None)
             if spread:
                 spread.leg_pos.update(leg_pos)
 
@@ -193,9 +191,9 @@ class SpreadDataEngine:
 
     def process_tick_event(self, event: Event) -> None:
         """"""
-        tick: TickData = event.data
+        tick = event.data
 
-        leg: LegData = self.legs.get(tick.vt_symbol, None)
+        leg = self.legs.get(tick.vt_symbol, None)
         if not leg:
             return
         leg.update_tick(tick)
@@ -207,9 +205,9 @@ class SpreadDataEngine:
 
     def process_position_event(self, event: Event) -> None:
         """"""
-        position: PositionData = event.data
+        position = event.data
 
-        leg: LegData = self.legs.get(position.vt_symbol, None)
+        leg = self.legs.get(position.vt_symbol, None)
         if not leg:
             return
         leg.update_position(position)
@@ -220,14 +218,14 @@ class SpreadDataEngine:
 
     def process_trade_event(self, event: Event) -> None:
         """"""
-        trade: TradeData = event.data
+        trade = event.data
 
         if trade.vt_tradeid in self.tradeid_history:
             return
         self.tradeid_history.add(trade.vt_tradeid)
 
         # 查询该笔成交，对应的价差，并更新计算价差持仓
-        spread: SpreadData = self.order_spread_map.get(trade.vt_orderid, None)
+        spread = self.order_spread_map.get(trade.vt_orderid, None)
         if spread:
             spread.update_trade(trade)
             spread.calculate_pos()
@@ -237,42 +235,42 @@ class SpreadDataEngine:
 
     def process_contract_event(self, event: Event) -> None:
         """"""
-        contract: ContractData = event.data
-        leg: LegData = self.legs.get(contract.vt_symbol, None)
+        contract = event.data
+        leg = self.legs.get(contract.vt_symbol, None)
 
         if leg:
             # Update contract data
             leg.update_contract(contract)
 
-            req: SubscribeRequest = SubscribeRequest(
+            req = SubscribeRequest(
                 contract.symbol, contract.exchange
             )
             self.main_engine.subscribe(req, contract.gateway_name)
 
     def put_data_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_DATA, spread)
+        event = Event(EVENT_SPREAD_DATA, spread)
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_POS, spread)
+        event = Event(EVENT_SPREAD_POS, spread)
         self.event_engine.put(event)
 
     def get_leg(self, vt_symbol: str) -> LegData:
         """"""
-        leg: LegData = self.legs.get(vt_symbol, None)
+        leg = self.legs.get(vt_symbol, None)
 
         if not leg:
-            leg: LegData = LegData(vt_symbol)
+            leg = LegData(vt_symbol)
             self.legs[vt_symbol] = leg
 
             # Subscribe market data
-            contract: ContractData = self.main_engine.get_contract(vt_symbol)
+            contract = self.main_engine.get_contract(vt_symbol)
             if contract:
                 leg.update_contract(contract)
 
-                req: SubscribeRequest = SubscribeRequest(
+                req = SubscribeRequest(
                     contract.symbol,
                     contract.exchange
                 )
@@ -280,8 +278,8 @@ class SpreadDataEngine:
 
             # Initialize leg position
             for direction in Direction:
-                vt_positionid: str = f"{vt_symbol}.{direction.value}"
-                position: PositionData = self.main_engine.get_position(vt_positionid)
+                vt_positionid = f"{vt_symbol}.{direction.value}"
+                position = self.main_engine.get_position(vt_positionid)
 
                 if position:
                     leg.update_position(position)
@@ -308,16 +306,16 @@ class SpreadDataEngine:
         trading_multipliers: Dict[str, int] = {}
 
         for leg_setting in leg_settings:
-            vt_symbol: str = leg_setting["vt_symbol"]
-            variable: str = leg_setting["variable"]
-            leg: LegData = self.get_leg(vt_symbol)
+            vt_symbol = leg_setting["vt_symbol"]
+            variable = leg_setting["variable"]
+            leg = self.get_leg(vt_symbol)
 
             legs.append(leg)
             variable_symbols[variable] = vt_symbol
             variable_directions[variable] = leg_setting["trading_direction"]
             trading_multipliers[vt_symbol] = leg_setting["trading_multiplier"]
 
-        spread: SpreadData = SpreadData(
+        spread = SpreadData(
             name,
             legs,
             variable_symbols,
@@ -343,7 +341,7 @@ class SpreadDataEngine:
         if name not in self.spreads:
             return
 
-        spread: SpreadData = self.spreads.pop(name)
+        spread = self.spreads.pop(name)
 
         for leg in spread.legs.values():
             self.symbol_spread_map[leg.vt_symbol].remove(spread)
@@ -353,7 +351,7 @@ class SpreadDataEngine:
 
     def get_spread(self, name: str) -> SpreadData:
         """"""
-        spread: SpreadData = self.spreads.get(name, None)
+        spread = self.spreads.get(name, None)
         return spread
 
     def get_all_spreads(self) -> List[SpreadData]:
@@ -367,9 +365,9 @@ class SpreadDataEngine:
 
 class SpreadAlgoEngine:
     """"""
-    algo_class: SpreadTakerAlgo = SpreadTakerAlgo
+    algo_class = SpreadTakerAlgo
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
+    def __init__(self, spread_engine: SpreadEngine):
         """"""
         self.spread_engine: SpreadEngine = spread_engine
         self.data_engine: SpreadDataEngine = spread_engine.data_engine
@@ -379,27 +377,27 @@ class SpreadAlgoEngine:
 
         self.write_log = spread_engine.write_log
 
-        self.spreads: Dict[str, SpreadData] = {}
-        self.algos: Dict[str, SpreadAlgoTemplate] = {}
+        self.spreads: Dict[str: SpreadData] = {}
+        self.algos: Dict[str: SpreadAlgoTemplate] = {}
 
-        self.order_algo_map: Dict[str, SpreadAlgoTemplate] = {}
-        self.symbol_algo_map: defaultdict = defaultdict(list)
+        self.order_algo_map: Dict[str: SpreadAlgoTemplate] = {}
+        self.symbol_algo_map: Dict[str: SpreadAlgoTemplate] = defaultdict(list)
 
         self.algo_count: int = 0
-        self.vt_tradeids: set = set()
+        self.vt_tradeids: Set = set()
 
-    def start(self) -> None:
+    def start(self):
         """"""
         self.register_event()
 
         self.write_log("价差算法引擎启动成功")
 
-    def stop(self) -> None:
+    def stop(self):
         """"""
         for algo in self.algos.values():
             self.stop_algo(algo)
 
-    def register_event(self) -> None:
+    def register_event(self):
         """"""
         self.event_engine.register(EVENT_TICK, self.process_tick_event)
         self.event_engine.register(EVENT_ORDER, self.process_order_event)
@@ -410,38 +408,38 @@ class SpreadAlgoEngine:
             EVENT_SPREAD_DATA, self.process_spread_event
         )
 
-    def process_spread_event(self, event: Event) -> None:
+    def process_spread_event(self, event: Event):
         """"""
         spread: SpreadData = event.data
         self.spreads[spread.name] = spread
 
-    def process_tick_event(self, event: Event) -> None:
+    def process_tick_event(self, event: Event):
         """"""
-        tick: TickData = event.data
-        algos: list = self.symbol_algo_map[tick.vt_symbol]
+        tick = event.data
+        algos = self.symbol_algo_map[tick.vt_symbol]
         if not algos:
             return
 
-        buf: list = copy(algos)
+        buf = copy(algos)
         for algo in buf:
             if not algo.is_active():
                 algos.remove(algo)
             else:
                 algo.update_tick(tick)
 
-    def process_order_event(self, event: Event) -> None:
+    def process_order_event(self, event: Event):
         """"""
-        order: OrderData = event.data
+        order = event.data
 
         self.offset_converter.update_order(order)
 
-        algo: SpreadAlgoTemplate = self.order_algo_map.get(order.vt_orderid, None)
+        algo = self.order_algo_map.get(order.vt_orderid, None)
         if algo and algo.is_active():
             algo.update_order(order)
 
-    def process_trade_event(self, event: Event) -> None:
+    def process_trade_event(self, event: Event):
         """"""
-        trade: TradeData = event.data
+        trade = event.data
 
         # Filter duplicate trade push
         if trade.vt_tradeid in self.vt_tradeids:
@@ -450,19 +448,19 @@ class SpreadAlgoEngine:
 
         self.offset_converter.update_trade(trade)
 
-        algo: SpreadAlgoTemplate = self.order_algo_map.get(trade.vt_orderid, None)
+        algo = self.order_algo_map.get(trade.vt_orderid, None)
         if algo and algo.is_active():
             algo.update_trade(trade)
 
-    def process_position_event(self, event: Event) -> None:
+    def process_position_event(self, event: Event):
         """"""
-        position: PositionData = event.data
+        position = event.data
 
         self.offset_converter.update_position(position)
 
-    def process_timer_event(self, event: Event) -> None:
+    def process_timer_event(self, event: Event):
         """"""
-        buf: list = list(self.algos.values())
+        buf = list(self.algos.values())
 
         for algo in buf:
             if not algo.is_active():
@@ -482,18 +480,18 @@ class SpreadAlgoEngine:
         extra: dict
     ) -> str:
         # Find spread object
-        spread: SpreadData = self.spreads.get(spread_name, None)
+        spread = self.spreads.get(spread_name, None)
         if not spread:
             self.write_log("创建价差算法失败，找不到价差：{}".format(spread_name))
             return ""
 
         # Generate algoid str
         self.algo_count += 1
-        algo_count_str: str = str(self.algo_count).rjust(6, "0")
-        algoid: str = f"{self.algo_class.algo_name}_{algo_count_str}"
+        algo_count_str = str(self.algo_count).rjust(6, "0")
+        algoid = f"{self.algo_class.algo_name}_{algo_count_str}"
 
         # Create algo object
-        algo: SpreadTakerAlgo = self.algo_class(
+        algo = self.algo_class(
             self,
             algoid,
             spread,
@@ -519,9 +517,9 @@ class SpreadAlgoEngine:
     def stop_algo(
         self,
         algoid: str
-    ) -> None:
+    ):
         """"""
-        algo: SpreadAlgoTemplate = self.algos.get(algoid, None)
+        algo = self.algos.get(algoid, None)
         if not algo:
             self.write_log("停止价差算法失败，找不到算法：{}".format(algoid))
             return
@@ -530,12 +528,12 @@ class SpreadAlgoEngine:
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_ALGO, algo)
+        event = Event(EVENT_SPREAD_ALGO, algo)
         self.event_engine.put(event)
 
     def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
         """"""
-        msg: str = f"{algo.algoid}：{msg}"
+        msg = f"{algo.algoid}：{msg}"
         self.write_log(msg)
 
     def send_order(
@@ -550,14 +548,14 @@ class SpreadAlgoEngine:
     ) -> List[str]:
         """"""
         # 创建原始委托请求
-        contract: ContractData = self.main_engine.get_contract(vt_symbol)
+        contract = self.main_engine.get_contract(vt_symbol)
 
         if fak:
-            order_type: OrderType = OrderType.FAK
+            order_type = OrderType.FAK
         else:
-            order_type: OrderType = OrderType.LIMIT
+            order_type = OrderType.LIMIT
 
-        original_req: OrderRequest = OrderRequest(
+        original_req = OrderRequest(
             symbol=contract.symbol,
             exchange=contract.exchange,
             direction=direction,
@@ -569,17 +567,17 @@ class SpreadAlgoEngine:
         )
 
         # 判断使用净仓还是锁仓模式
-        net: bool = not lock
+        net = not lock
 
         # 执行委托转换
-        req_list: List[OrderRequest] = self.offset_converter.convert_order_request(
+        req_list = self.offset_converter.convert_order_request(
             original_req, lock, net)
 
         # Send Orders
-        vt_orderids: list = []
+        vt_orderids = []
 
         for req in req_list:
-            vt_orderid: str = self.main_engine.send_order(
+            vt_orderid = self.main_engine.send_order(
                 req, contract.gateway_name)
 
             # Check if sending order successful
@@ -600,12 +598,12 @@ class SpreadAlgoEngine:
 
     def cancel_order(self, algo: SpreadAlgoTemplate, vt_orderid: str) -> None:
         """"""
-        order: OrderData = self.main_engine.get_order(vt_orderid)
+        order = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_algo_log(algo, "撤单失败，找不到委托{}".format(vt_orderid))
             return
 
-        req: CancelRequest = order.create_cancel_request()
+        req = order.create_cancel_request()
         self.main_engine.cancel_order(req, order.gateway_name)
 
     def get_tick(self, vt_symbol: str) -> TickData:
@@ -620,9 +618,9 @@ class SpreadAlgoEngine:
 class SpreadStrategyEngine:
     """"""
 
-    setting_filename: str = "spread_trading_strategy.json"
+    setting_filename = "spread_trading_strategy.json"
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
+    def __init__(self, spread_engine: SpreadEngine):
         """"""
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
@@ -631,41 +629,42 @@ class SpreadStrategyEngine:
 
         self.write_log = spread_engine.write_log
 
-        self.strategy_setting: dict = {}
+        self.strategy_setting: Dict[str: Dict] = {}
 
-        self.classes: dict = {}
-        self.strategies: dict = {}
+        self.classes: Dict[str: Type[SpreadStrategyTemplate]] = {}
+        self.strategies: Dict[str: SpreadStrategyTemplate] = {}
 
-        self.order_strategy_map: dict = {}
-        self.algo_strategy_map: dict = {}
-        self.spread_strategy_map: defaultdict = defaultdict(list)
+        self.order_strategy_map: Dict[str: SpreadStrategyTemplate] = {}
+        self.algo_strategy_map: Dict[str: SpreadStrategyTemplate] = {}
+        self.spread_strategy_map: Dict[str: SpreadStrategyTemplate] = defaultdict(
+            list)
 
-        self.vt_tradeids: set = set()
+        self.vt_tradeids: Set = set()
 
         self.load_strategy_class()
 
-    def start(self) -> None:
+    def start(self):
         """"""
         self.load_strategy_setting()
         self.register_event()
 
         self.write_log("价差策略引擎启动成功")
 
-    def close(self) -> None:
+    def close(self):
         """"""
         self.stop_all_strategies()
 
-    def load_strategy_class(self) -> None:
+    def load_strategy_class(self):
         """
         Load strategy class from source code.
         """
-        path1: Path = Path(__file__).parent.joinpath("strategies")
+        path1 = Path(__file__).parent.joinpath("strategies")
         self.load_strategy_class_from_folder(path1, "vnpy_spreadtrading.strategies")
 
-        path2: Path = Path.cwd().joinpath("strategies")
+        path2 = Path.cwd().joinpath("strategies")
         self.load_strategy_class_from_folder(path2, "strategies")
 
-    def load_strategy_class_from_folder(self, path: Path, module_name: str = "") -> None:
+    def load_strategy_class_from_folder(self, path: Path, module_name: str = ""):
         """
         Load strategy class from certain folder.
         """
@@ -675,26 +674,26 @@ class SpreadStrategyEngine:
                     strategy_module_name = ".".join([module_name, filename.split(".")[0]])
                     self.load_strategy_class_from_module(strategy_module_name)
 
-    def load_strategy_class_from_module(self, module_name: str) -> None:
+    def load_strategy_class_from_module(self, module_name: str):
         """
         Load strategy class from module file.
         """
         try:
-            module: ModuleType = importlib.import_module(module_name)
+            module = importlib.import_module(module_name)
 
             for name in dir(module):
                 value = getattr(module, name)
                 if (isinstance(value, type) and issubclass(value, SpreadStrategyTemplate) and value is not SpreadStrategyTemplate):
                     self.classes[value.__name__] = value
         except:  # noqa
-            msg: str = f"策略文件{module_name}加载失败，触发异常：\n{traceback.format_exc()}"
+            msg = f"策略文件{module_name}加载失败，触发异常：\n{traceback.format_exc()}"
             self.write_log(msg)
 
-    def get_all_strategy_class_names(self) -> list:
+    def get_all_strategy_class_names(self):
         """"""
         return list(self.classes.keys())
 
-    def load_strategy_setting(self) -> None:
+    def load_strategy_setting(self):
         """
         Load setting file.
         """
@@ -708,11 +707,11 @@ class SpreadStrategyEngine:
                 strategy_config["setting"]
             )
 
-    def update_strategy_setting(self, strategy_name: str, setting: dict) -> None:
+    def update_strategy_setting(self, strategy_name: str, setting: dict):
         """
         Update setting file.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
 
         self.strategy_setting[strategy_name] = {
             "class_name": strategy.__class__.__name__,
@@ -721,7 +720,7 @@ class SpreadStrategyEngine:
         }
         save_json(self.setting_filename, self.strategy_setting)
 
-    def remove_strategy_setting(self, strategy_name: str) -> None:
+    def remove_strategy_setting(self, strategy_name: str):
         """
         Update setting file.
         """
@@ -731,61 +730,61 @@ class SpreadStrategyEngine:
         self.strategy_setting.pop(strategy_name)
         save_json(self.setting_filename, self.strategy_setting)
 
-    def register_event(self) -> None:
+    def register_event(self):
         """"""
-        ee: EventEngine = self.event_engine
+        ee = self.event_engine
         ee.register(EVENT_ORDER, self.process_order_event)
         ee.register(EVENT_TRADE, self.process_trade_event)
         ee.register(EVENT_SPREAD_DATA, self.process_spread_data_event)
         ee.register(EVENT_SPREAD_POS, self.process_spread_pos_event)
         ee.register(EVENT_SPREAD_ALGO, self.process_spread_algo_event)
 
-    def process_spread_data_event(self, event: Event) -> None:
+    def process_spread_data_event(self, event: Event):
         """"""
-        spread: SpreadData = event.data
-        strategies: list = self.spread_strategy_map[spread.name]
+        spread = event.data
+        strategies = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_data)
 
-    def process_spread_pos_event(self, event: Event) -> None:
+    def process_spread_pos_event(self, event: Event):
         """"""
-        spread: SpreadData = event.data
-        strategies: list = self.spread_strategy_map[spread.name]
+        spread = event.data
+        strategies = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_pos)
 
-    def process_spread_algo_event(self, event: Event) -> None:
+    def process_spread_algo_event(self, event: Event):
         """"""
-        algo: SpreadAlgoTemplate = event.data
-        strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
+        algo = event.data
+        strategy = self.algo_strategy_map.get(algo.algoid, None)
 
         if strategy:
             self.call_strategy_func(
                 strategy, strategy.update_spread_algo, algo)
 
-    def process_order_event(self, event: Event) -> None:
+    def process_order_event(self, event: Event):
         """"""
-        order: OrderData = event.data
-        strategy: SpreadStrategyTemplate = self.order_strategy_map.get(order.vt_orderid, None)
+        order = event.data
+        strategy = self.order_strategy_map.get(order.vt_orderid, None)
 
         if strategy:
             self.call_strategy_func(strategy, strategy.update_order, order)
 
-    def process_trade_event(self, event: Event) -> None:
+    def process_trade_event(self, event: Event):
         """"""
-        trade: TradeData = event.data
-        strategy: SpreadStrategyTemplate = self.order_strategy_map.get(trade.vt_orderid, None)
+        trade = event.data
+        strategy = self.order_strategy_map.get(trade.vt_orderid, None)
 
         if strategy:
             self.call_strategy_func(strategy, strategy.on_trade, trade)
 
     def call_strategy_func(
         self, strategy: SpreadStrategyTemplate, func: Callable, params: Any = None
-    ) -> None:
+    ):
         """
         Call function of a strategy and catch any exception raised.
         """
@@ -798,12 +797,12 @@ class SpreadStrategyEngine:
             strategy.trading = False
             strategy.inited = False
 
-            msg: str = f"触发异常已停止\n{traceback.format_exc()}"
+            msg = f"触发异常已停止\n{traceback.format_exc()}"
             self.write_strategy_log(strategy, msg)
 
     def add_strategy(
         self, class_name: str, strategy_name: str, spread_name: str, setting: dict
-    ) -> None:
+    ):
         """
         Add a new strategy.
         """
@@ -811,21 +810,21 @@ class SpreadStrategyEngine:
             self.write_log(f"创建策略失败，存在重名{strategy_name}")
             return
 
-        strategy_class: type = self.classes.get(class_name, None)
+        strategy_class = self.classes.get(class_name, None)
         if not strategy_class:
             self.write_log(f"创建策略失败，找不到策略类{class_name}")
             return
 
-        spread: SpreadData = self.spread_engine.get_spread(spread_name)
+        spread = self.spread_engine.get_spread(spread_name)
         if not spread:
             self.write_log(f"创建策略失败，找不到价差{spread_name}")
             return
 
-        strategy: type = strategy_class(self, strategy_name, spread, setting)
+        strategy = strategy_class(self, strategy_name, spread, setting)
         self.strategies[strategy_name] = strategy
 
         # Add vt_symbol to strategy map.
-        strategies: list = self.spread_strategy_map[spread_name]
+        strategies = self.spread_strategy_map[spread_name]
         strategies.append(strategy)
 
         # Update to setting file.
@@ -833,21 +832,21 @@ class SpreadStrategyEngine:
 
         self.put_strategy_event(strategy)
 
-    def edit_strategy(self, strategy_name: str, setting: dict) -> None:
+    def edit_strategy(self, strategy_name: str, setting: dict):
         """
         Edit parameters of a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
         strategy.update_setting(setting)
 
         self.update_strategy_setting(strategy_name, setting)
         self.put_strategy_event(strategy)
 
-    def remove_strategy(self, strategy_name: str) -> bool:
+    def remove_strategy(self, strategy_name: str):
         """
         Remove a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
         if strategy.trading:
             self.write_log(f"策略{strategy.strategy_name}移除失败，请先停止")
             return
@@ -856,7 +855,7 @@ class SpreadStrategyEngine:
         self.remove_strategy_setting(strategy_name)
 
         # Remove from symbol strategy map
-        strategies: type = self.spread_strategy_map[strategy.spread_name]
+        strategies = self.spread_strategy_map[strategy.spread_name]
         strategies.remove(strategy)
 
         # Remove from strategies
@@ -864,9 +863,9 @@ class SpreadStrategyEngine:
 
         return True
 
-    def init_strategy(self, strategy_name: str) -> None:
+    def init_strategy(self, strategy_name: str):
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
 
         if strategy.inited:
             self.write_log(f"{strategy_name}已经完成初始化，禁止重复操作")
@@ -878,9 +877,9 @@ class SpreadStrategyEngine:
         self.put_strategy_event(strategy)
         self.write_log(f"{strategy_name}初始化完成")
 
-    def start_strategy(self, strategy_name: str) -> None:
+    def start_strategy(self, strategy_name: str):
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
         if not strategy.inited:
             self.write_log(f"策略{strategy.strategy_name}启动失败，请先初始化")
             return
@@ -894,9 +893,9 @@ class SpreadStrategyEngine:
 
         self.put_strategy_event(strategy)
 
-    def stop_strategy(self, strategy_name: str) -> None:
+    def stop_strategy(self, strategy_name: str):
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
         if not strategy.trading:
             return
 
@@ -909,38 +908,38 @@ class SpreadStrategyEngine:
 
         self.put_strategy_event(strategy)
 
-    def init_all_strategies(self) -> None:
+    def init_all_strategies(self):
         """"""
         for strategy in self.strategies.keys():
             self.init_strategy(strategy)
 
-    def start_all_strategies(self) -> None:
+    def start_all_strategies(self):
         """"""
         for strategy in self.strategies.keys():
             self.start_strategy(strategy)
 
-    def stop_all_strategies(self) -> None:
+    def stop_all_strategies(self):
         """"""
         for strategy in self.strategies.keys():
             self.stop_strategy(strategy)
 
-    def get_strategy_class_parameters(self, class_name: str) -> dict:
+    def get_strategy_class_parameters(self, class_name: str):
         """
         Get default parameters of a strategy class.
         """
-        strategy_class: type = self.classes[class_name]
+        strategy_class = self.classes[class_name]
 
-        parameters: dict = {}
+        parameters = {}
         for name in strategy_class.parameters:
             parameters[name] = getattr(strategy_class, name)
 
         return parameters
 
-    def get_strategy_parameters(self, strategy_name) -> dict:
+    def get_strategy_parameters(self, strategy_name):
         """
         Get parameters of a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy = self.strategies[strategy_name]
         return strategy.get_parameters()
 
     def start_algo(
@@ -956,7 +955,7 @@ class SpreadStrategyEngine:
         extra: dict
     ) -> str:
         """"""
-        algoid: str = self.spread_engine.start_algo(
+        algoid = self.spread_engine.start_algo(
             spread_name,
             direction,
             price,
@@ -971,11 +970,11 @@ class SpreadStrategyEngine:
 
         return algoid
 
-    def stop_algo(self, strategy: SpreadStrategyTemplate, algoid: str) -> None:
+    def stop_algo(self, strategy: SpreadStrategyTemplate, algoid: str):
         """"""
         self.spread_engine.stop_algo(algoid)
 
-    def stop_all_algos(self, strategy: SpreadStrategyTemplate) -> None:
+    def stop_all_algos(self, strategy: SpreadStrategyTemplate):
         """"""
         pass
 
@@ -989,9 +988,9 @@ class SpreadStrategyEngine:
         offset: Offset,
         lock: bool
     ) -> List[str]:
-        contract: ContractData = self.main_engine.get_contract(vt_symbol)
+        contract = self.main_engine.get_contract(vt_symbol)
 
-        original_req: OrderRequest = OrderRequest(
+        original_req = OrderRequest(
             symbol=contract.symbol,
             exchange=contract.exchange,
             direction=direction,
@@ -1003,14 +1002,14 @@ class SpreadStrategyEngine:
         )
 
         # Convert with offset converter
-        req_list: List[OrderRequest] = self.offset_converter.convert_order_request(
+        req_list = self.offset_converter.convert_order_request(
             original_req, lock)
 
         # Send Orders
-        vt_orderids: list = []
+        vt_orderids = []
 
         for req in req_list:
-            vt_orderid: str = self.main_engine.send_order(
+            vt_orderid = self.main_engine.send_order(
                 req, contract.gateway_name)
 
             # Check if sending order successful
@@ -1026,59 +1025,59 @@ class SpreadStrategyEngine:
 
         return vt_orderids
 
-    def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str) -> None:
+    def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str):
         """"""
-        order: OrderData = self.main_engine.get_order(vt_orderid)
+        order = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_strategy_log(
                 strategy, "撤单失败，找不到委托{}".format(vt_orderid))
             return
 
-        req: CancelRequest = order.create_cancel_request()
+        req = order.create_cancel_request()
         self.main_engine.cancel_order(req, order.gateway_name)
 
-    def cancel_all_orders(self, strategy: SpreadStrategyTemplate) -> None:
+    def cancel_all_orders(self, strategy: SpreadStrategyTemplate):
         """"""
         pass
 
-    def put_strategy_event(self, strategy: SpreadStrategyTemplate) -> None:
+    def put_strategy_event(self, strategy: SpreadStrategyTemplate):
         """"""
-        data: dict = strategy.get_data()
+        data = strategy.get_data()
         event = Event(EVENT_SPREAD_STRATEGY, data)
         self.event_engine.put(event)
 
-    def write_strategy_log(self, strategy: SpreadStrategyTemplate, msg: str) -> None:
+    def write_strategy_log(self, strategy: SpreadStrategyTemplate, msg: str):
         """"""
-        msg: str = f"{strategy.strategy_name}：{msg}"
+        msg = f"{strategy.strategy_name}：{msg}"
         self.write_log(msg)
 
-    def send_email(self, msg: str, strategy: SpreadStrategyTemplate = None) -> None:
+    def send_email(self, msg: str, strategy: SpreadStrategyTemplate = None):
         """"""
         if strategy:
-            subject: str = f"{strategy.strategy_name}"
+            subject = f"{strategy.strategy_name}"
         else:
-            subject: str = "价差策略引擎"
+            subject = "价差策略引擎"
 
         self.main_engine.send_email(subject, msg)
 
     def load_bar(
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable
-    ) -> None:
+    ):
         """"""
-        end: datetime = datetime.now()
-        start: datetime = end - timedelta(days)
+        end = datetime.now()
+        start = end - timedelta(days)
 
-        bars: List[BarData] = load_bar_data(spread, interval, start, end)
+        bars = load_bar_data(spread, interval, start, end)
 
         for bar in bars:
             callback(bar)
 
-    def load_tick(self, spread: SpreadData, days: int, callback: Callable) -> None:
+    def load_tick(self, spread: SpreadData, days: int, callback: Callable):
         """"""
-        end: datetime = datetime.now()
-        start: datetime = end - timedelta(days)
+        end = datetime.now()
+        start = end - timedelta(days)
 
-        ticks: List[TickData] = load_tick_data(spread, start, end)
+        ticks = load_tick_data(spread, start, end)
 
         for tick in ticks:
             callback(tick)

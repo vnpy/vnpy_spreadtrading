@@ -331,11 +331,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             self.strategy_engine.get_all_strategy_class_names()
         )
 
-    def remove_strategy(self, strategy_name):
-        """"""
-        manager = self.managers.pop(strategy_name)
-        manager.deleteLater()
-
     def add_strategy(self):
         """"""
         class_name = str(self.class_combo.currentText())

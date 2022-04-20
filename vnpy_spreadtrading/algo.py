@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from vnpy.trader.constant import Direction
 from vnpy.trader.object import TickData, OrderData, TradeData, ContractData
@@ -159,8 +159,8 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
     def send_leg_order(self, vt_symbol: str, leg_volume: float) -> None:
         """"""
         leg: LegData = self.spread.legs[vt_symbol]
-        leg_tick: TickData = self.get_tick(vt_symbol)
-        leg_contract: ContractData = self.get_contract(vt_symbol)
+        leg_tick: Optional[TickData] = self.get_tick(vt_symbol)
+        leg_contract: Optional[ContractData] = self.get_contract(vt_symbol)
 
         if leg_volume > 0:
             price: float = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup

@@ -2,7 +2,7 @@ import traceback
 import importlib
 import os
 from types import ModuleType
-from typing import List, Dict, Set, Callable, Any
+from typing import List, Dict, Set, Callable, Any, Optional
 from collections import defaultdict
 from copy import copy
 from pathlib import Path
@@ -268,7 +268,7 @@ class SpreadDataEngine:
             self.legs[vt_symbol] = leg
 
             # Subscribe market data
-            contract: ContractData = self.main_engine.get_contract(vt_symbol)
+            contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
             if contract:
                 leg.update_contract(contract)
 
@@ -281,7 +281,7 @@ class SpreadDataEngine:
             # Initialize leg position
             for direction in Direction:
                 vt_positionid: str = f"{vt_symbol}.{direction.value}"
-                position: PositionData = self.main_engine.get_position(vt_positionid)
+                position: Optional[PositionData] = self.main_engine.get_position(vt_positionid)
 
                 if position:
                     leg.update_position(position)
@@ -351,7 +351,7 @@ class SpreadDataEngine:
         self.save_setting()
         self.write_log("价差移除成功：{}，重启后生效".format(name))
 
-    def get_spread(self, name: str) -> SpreadData:
+    def get_spread(self, name: str) -> Optional[SpreadData]:
         """"""
         spread: SpreadData = self.spreads.get(name, None)
         return spread
@@ -550,7 +550,7 @@ class SpreadAlgoEngine:
     ) -> List[str]:
         """"""
         # 创建原始委托请求
-        contract: ContractData = self.main_engine.get_contract(vt_symbol)
+        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
 
         if fak:
             order_type: OrderType = OrderType.FAK
@@ -600,7 +600,7 @@ class SpreadAlgoEngine:
 
     def cancel_order(self, algo: SpreadAlgoTemplate, vt_orderid: str) -> None:
         """"""
-        order: OrderData = self.main_engine.get_order(vt_orderid)
+        order: Optional[OrderData] = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_algo_log(algo, "撤单失败，找不到委托{}".format(vt_orderid))
             return
@@ -608,11 +608,11 @@ class SpreadAlgoEngine:
         req: CancelRequest = order.create_cancel_request()
         self.main_engine.cancel_order(req, order.gateway_name)
 
-    def get_tick(self, vt_symbol: str) -> TickData:
+    def get_tick(self, vt_symbol: str) -> Optional[TickData]:
         """"""
         return self.main_engine.get_tick(vt_symbol)
 
-    def get_contract(self, vt_symbol: str) -> ContractData:
+    def get_contract(self, vt_symbol: str) -> Optional[ContractData]:
         """"""
         return self.main_engine.get_contract(vt_symbol)
 
@@ -816,7 +816,7 @@ class SpreadStrategyEngine:
             self.write_log(f"创建策略失败，找不到策略类{class_name}")
             return
 
-        spread: SpreadData = self.spread_engine.get_spread(spread_name)
+        spread: Optional[SpreadData] = self.spread_engine.get_spread(spread_name)
         if not spread:
             self.write_log(f"创建策略失败，找不到价差{spread_name}")
             return
@@ -989,7 +989,7 @@ class SpreadStrategyEngine:
         offset: Offset,
         lock: bool
     ) -> List[str]:
-        contract: ContractData = self.main_engine.get_contract(vt_symbol)
+        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
 
         original_req: OrderRequest = OrderRequest(
             symbol=contract.symbol,
@@ -1028,7 +1028,7 @@ class SpreadStrategyEngine:
 
     def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str) -> None:
         """"""
-        order: OrderData = self.main_engine.get_order(vt_orderid)
+        order: Optional[OrderData] = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_strategy_log(
                 strategy, "撤单失败，找不到委托{}".format(vt_orderid))

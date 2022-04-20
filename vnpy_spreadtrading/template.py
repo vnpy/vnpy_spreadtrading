@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Dict, List, Set, Callable, TYPE_CHECKING
+from re import T
+from typing import Dict, List, Set, Callable, TYPE_CHECKING, Optional
 from copy import copy
 
 from vnpy.trader.object import (
@@ -162,7 +163,7 @@ class SpreadAlgoTemplate:
 
         # Remove order from active list if all volume traded
         order: OrderData = self.orders[trade.vt_orderid]
-        contract: ContractData = self.get_contract(trade.vt_symbol)
+        contract: Optional[ContractData] = self.get_contract(trade.vt_symbol)
 
         trade_volume = round_to(
             self.order_trade_volume[order.vt_orderid],
@@ -245,7 +246,7 @@ class SpreadAlgoTemplate:
         price: float = round_to(price, leg.pricetick)
 
         # 检查价格是否超过涨跌停板
-        tick: TickData = self.get_tick(vt_symbol)
+        tick: Optional[TickData] = self.get_tick(vt_symbol)
 
         if direction == Direction.LONG and tick.limit_up:
             price = min(price, tick.limit_up)
@@ -357,11 +358,11 @@ class SpreadAlgoTemplate:
         else:
             self.traded_price = 0
 
-    def get_tick(self, vt_symbol: str) -> TickData:
+    def get_tick(self, vt_symbol: str) -> Optional[TickData]:
         """"""
         return self.algo_engine.get_tick(vt_symbol)
 
-    def get_contract(self, vt_symbol: str) -> ContractData:
+    def get_contract(self, vt_symbol: str) -> Optional[ContractData]:
         """"""
         return self.algo_engine.get_contract(vt_symbol)
 
@@ -708,7 +709,7 @@ class SpreadStrategyTemplate:
         """"""
         return self.spread.net_pos
 
-    def get_leg_tick(self, vt_symbol: str) -> TickData:
+    def get_leg_tick(self, vt_symbol: str) -> Optional[TickData]:
         """"""
         leg: LegData = self.spread.legs.get(vt_symbol, None)
 
@@ -717,7 +718,7 @@ class SpreadStrategyTemplate:
 
         return leg.tick
 
-    def get_leg_pos(self, vt_symbol: str, direction: Direction = Direction.NET) -> float:
+    def get_leg_pos(self, vt_symbol: str, direction: Direction = Direction.NET) -> Optional[float]:
         """"""
         leg: LegData = self.spread.legs.get(vt_symbol, None)
 

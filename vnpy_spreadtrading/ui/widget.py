@@ -131,7 +131,7 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
     """
     Monitor for log data.
     """
-    signal = QtCore.pyqtSignal(Event)
+    signal: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
@@ -377,7 +377,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setWindowTitle("移除价差")
         self.setMinimumWidth(300)
 
-        self.name_combo = QtWidgets.QComboBox()
+        self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         spreads: List[SpreadData] = self.spread_engine.get_all_spreads()
         for spread in spreads:
             self.name_combo.addItem(spread.name)
@@ -401,7 +401,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
 class SpreadStrategyMonitor(QtWidgets.QWidget):
     """"""
 
-    signal_strategy = QtCore.pyqtSignal(Event)
+    signal_strategy: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
         super().__init__()

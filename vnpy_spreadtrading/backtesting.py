@@ -36,25 +36,25 @@ class BacktestingEngine:
         """"""
         self.spread: SpreadData = None
 
-        self.start = None
-        self.end = None
-        self.rate = 0
-        self.slippage = 0
-        self.size = 1
-        self.pricetick = 0
-        self.capital = 1_000_000
-        self.mode = BacktestingMode.BAR
+        self.start: datetime = None
+        self.end: datetime = None
+        self.rate: float = 0
+        self.slippage: float = 0
+        self.size: float = 1
+        self.pricetick: float = 0
+        self.capital: int = 1_000_000
+        self.mode: BacktestingMode = BacktestingMode.BAR
 
         self.strategy_class: Type[SpreadStrategyTemplate] = None
         self.strategy: SpreadStrategyTemplate = None
         self.tick: TickData = None
         self.bar: BarData = None
-        self.datetime = None
+        self.datetime: datetime = None
 
-        self.interval = None
-        self.days = 0
-        self.callback = None
-        self.history_data = []
+        self.interval: Interval = None
+        self.days: int = 0
+        self.callback: Callable = None
+        self.history_data: list = []
 
         self.algo_count: int = 0
         self.algos: Dict[str, SpreadAlgoTemplate] = {}
@@ -63,9 +63,9 @@ class BacktestingEngine:
         self.trade_count: int = 0
         self.trades: Dict[str, TradeData] = {}
 
-        self.logs: List[str] = []
+        self.logs: list = []
 
-        self.daily_results: dict = {}
+        self.daily_results: Dict[date, DailyResult] = {}
         self.daily_df: DataFrame = None
 
     def output(self, msg) -> None:
@@ -394,7 +394,7 @@ class BacktestingEngine:
         """"""
         # Check DataFrame input exterior
         if df is None:
-            df: float = self.daily_df
+            df: DataFrame = self.daily_df
 
         # Check for init DataFrame
         if df is None:
@@ -686,17 +686,17 @@ class DailyResult:
         """"""
         self.date: date = date
         self.close_price: float = close_price
-        self.pre_close = 0
+        self.pre_close: float = 0
 
-        self.trades: list = []
+        self.trades: List[TradeData] = []
         self.trade_count: int = 0
 
         self.start_pos = 0
         self.end_pos = 0
 
-        self.turnover = 0
-        self.commission = 0
-        self.slippage = 0
+        self.turnover: float = 0
+        self.commission: float = 0
+        self.slippage: float = 0
 
         self.trading_pnl: float = 0
         self.holding_pnl: float = 0
@@ -740,7 +740,7 @@ class DailyResult:
 
             self.end_pos += pos_change
 
-            turnover = trade.volume * size * trade.value
+            turnover: float = trade.volume * size * trade.value
             self.trading_pnl += pos_change * \
                 (self.close_price - trade.price) * size
             self.slippage += trade.volume * size * slippage
@@ -790,7 +790,7 @@ def evaluate(
     engine.calculate_result()
     statistics: dict = engine.calculate_statistics(output=False)
 
-    target_value = statistics[target_name]
+    target_value: float = statistics[target_name]
     return (str(setting), target_value, statistics)
 
 

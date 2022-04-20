@@ -36,7 +36,7 @@ from .template import SpreadAlgoTemplate, SpreadStrategyTemplate
 from .algo import SpreadTakerAlgo
 
 
-APP_NAME: str = "SpreadTrading"
+APP_NAME = "SpreadTrading"
 
 
 class SpreadEngine(BaseEngine):
@@ -105,7 +105,7 @@ class SpreadDataEngine:
 
         self.legs: Dict[str, LegData] = {}          # vt_symbol: leg
         self.spreads: Dict[str, SpreadData] = {}    # name: spread
-        self.symbol_spread_map: defaultdict = defaultdict(list)
+        self.symbol_spread_map: Dict[str, List[SpreadData]] = defaultdict(list)
         self.order_spread_map: Dict[str, SpreadData] = {}
 
         self.tradeid_history: Set[str] = set()
@@ -264,7 +264,7 @@ class SpreadDataEngine:
         leg: LegData = self.legs.get(vt_symbol, None)
 
         if not leg:
-            leg: LegData = LegData(vt_symbol)
+            leg = LegData(vt_symbol)
             self.legs[vt_symbol] = leg
 
             # Subscribe market data
@@ -383,7 +383,7 @@ class SpreadAlgoEngine:
         self.algos: Dict[str, SpreadAlgoTemplate] = {}
 
         self.order_algo_map: Dict[str, SpreadAlgoTemplate] = {}
-        self.symbol_algo_map: defaultdict = defaultdict(list)
+        self.symbol_algo_map: Dict[str, List[SpreadAlgoTemplate]] = defaultdict(list)
 
         self.algo_count: int = 0
         self.vt_tradeids: set = set()
@@ -418,11 +418,11 @@ class SpreadAlgoEngine:
     def process_tick_event(self, event: Event) -> None:
         """"""
         tick: TickData = event.data
-        algos: list = self.symbol_algo_map[tick.vt_symbol]
+        algos: List[SpreadAlgoTemplate] = self.symbol_algo_map[tick.vt_symbol]
         if not algos:
             return
 
-        buf: list = copy(algos)
+        buf: List[SpreadAlgoTemplate] = copy(algos)
         for algo in buf:
             if not algo.is_active():
                 algos.remove(algo)
@@ -462,7 +462,7 @@ class SpreadAlgoEngine:
 
     def process_timer_event(self, event: Event) -> None:
         """"""
-        buf: list = list(self.algos.values())
+        buf: List[SpreadAlgoTemplate] = list(self.algos.values())
 
         for algo in buf:
             if not algo.is_active():
@@ -493,7 +493,7 @@ class SpreadAlgoEngine:
         algoid: str = f"{self.algo_class.algo_name}_{algo_count_str}"
 
         # Create algo object
-        algo: SpreadTakerAlgo = self.algo_class(
+        algo: SpreadAlgoTemplate = self.algo_class(
             self,
             algoid,
             spread,
@@ -634,11 +634,11 @@ class SpreadStrategyEngine:
         self.strategy_setting: dict = {}
 
         self.classes: dict = {}
-        self.strategies: dict = {}
+        self.strategies: Dict[str, SpreadStrategyTemplate] = {}
 
-        self.order_strategy_map: dict = {}
-        self.algo_strategy_map: dict = {}
-        self.spread_strategy_map: defaultdict = defaultdict(list)
+        self.order_strategy_map: Dict[str, SpreadStrategyTemplate] = {}
+        self.algo_strategy_map: Dict[str, SpreadStrategyTemplate] = {}
+        self.spread_strategy_map: Dict[str, List[SpreadStrategyTemplate]] = defaultdict(list)
 
         self.vt_tradeids: set = set()
 
@@ -712,7 +712,7 @@ class SpreadStrategyEngine:
         """
         Update setting file.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
 
         self.strategy_setting[strategy_name] = {
             "class_name": strategy.__class__.__name__,
@@ -743,7 +743,7 @@ class SpreadStrategyEngine:
     def process_spread_data_event(self, event: Event) -> None:
         """"""
         spread: SpreadData = event.data
-        strategies: list = self.spread_strategy_map[spread.name]
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
@@ -752,7 +752,7 @@ class SpreadStrategyEngine:
     def process_spread_pos_event(self, event: Event) -> None:
         """"""
         spread: SpreadData = event.data
-        strategies: list = self.spread_strategy_map[spread.name]
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
@@ -821,11 +821,11 @@ class SpreadStrategyEngine:
             self.write_log(f"创建策略失败，找不到价差{spread_name}")
             return
 
-        strategy: type = strategy_class(self, strategy_name, spread, setting)
+        strategy: SpreadStrategyTemplate = strategy_class(self, strategy_name, spread, setting)
         self.strategies[strategy_name] = strategy
 
         # Add vt_symbol to strategy map.
-        strategies: list = self.spread_strategy_map[spread_name]
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_name]
         strategies.append(strategy)
 
         # Update to setting file.
@@ -837,7 +837,7 @@ class SpreadStrategyEngine:
         """
         Edit parameters of a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         strategy.update_setting(setting)
 
         self.update_strategy_setting(strategy_name, setting)
@@ -847,7 +847,7 @@ class SpreadStrategyEngine:
         """
         Remove a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if strategy.trading:
             self.write_log(f"策略{strategy.strategy_name}移除失败，请先停止")
             return
@@ -856,7 +856,7 @@ class SpreadStrategyEngine:
         self.remove_strategy_setting(strategy_name)
 
         # Remove from symbol strategy map
-        strategies: type = self.spread_strategy_map[strategy.spread_name]
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[strategy.spread_name]
         strategies.remove(strategy)
 
         # Remove from strategies
@@ -866,7 +866,7 @@ class SpreadStrategyEngine:
 
     def init_strategy(self, strategy_name: str) -> None:
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
 
         if strategy.inited:
             self.write_log(f"{strategy_name}已经完成初始化，禁止重复操作")
@@ -880,7 +880,7 @@ class SpreadStrategyEngine:
 
     def start_strategy(self, strategy_name: str) -> None:
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if not strategy.inited:
             self.write_log(f"策略{strategy.strategy_name}启动失败，请先初始化")
             return
@@ -896,7 +896,7 @@ class SpreadStrategyEngine:
 
     def stop_strategy(self, strategy_name: str) -> None:
         """"""
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
             return
 
@@ -940,7 +940,7 @@ class SpreadStrategyEngine:
         """
         Get parameters of a strategy.
         """
-        strategy: type = self.strategies[strategy_name]
+        strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         return strategy.get_parameters()
 
     def start_algo(
@@ -1044,7 +1044,7 @@ class SpreadStrategyEngine:
     def put_strategy_event(self, strategy: SpreadStrategyTemplate) -> None:
         """"""
         data: dict = strategy.get_data()
-        event = Event(EVENT_SPREAD_STRATEGY, data)
+        event: Event = Event(EVENT_SPREAD_STRATEGY, data)
         self.event_engine.put(event)
 
     def write_strategy_log(self, strategy: SpreadStrategyTemplate, msg: str) -> None:

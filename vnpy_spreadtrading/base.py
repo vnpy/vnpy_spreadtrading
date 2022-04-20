@@ -13,11 +13,11 @@ from vnpy.trader.database import BaseDatabase, get_database
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
-EVENT_SPREAD_DATA: str = "eSpreadData"
-EVENT_SPREAD_POS: str = "eSpreadPos"
-EVENT_SPREAD_LOG: str = "eSpreadLog"
-EVENT_SPREAD_ALGO: str = "eSpreadAlgo"
-EVENT_SPREAD_STRATEGY: str = "eSpreadStrategy"
+EVENT_SPREAD_DATA = "eSpreadData"
+EVENT_SPREAD_POS = "eSpreadPos"
+EVENT_SPREAD_LOG = "eSpreadLog"
+EVENT_SPREAD_ALGO = "eSpreadAlgo"
+EVENT_SPREAD_STRATEGY = "eSpreadStrategy"
 
 LOCAL_TZ = get_localzone()
 
@@ -84,11 +84,11 @@ class LegData:
         """"""
         # Only update net pos for contract with net position mode
         if self.net_position:
-            trade_cost = trade.volume * trade.price
-            old_cost = self.net_pos * self.net_pos_price
+            trade_cost: float = trade.volume * trade.price
+            old_cost: float = self.net_pos * self.net_pos_price
 
             if trade.direction == Direction.LONG:
-                new_pos = self.net_pos + trade.volume
+                new_pos: float = self.net_pos + trade.volume
 
                 if self.net_pos >= 0:
                     new_cost = old_cost + trade_cost
@@ -101,7 +101,7 @@ class LegData:
                     elif new_pos > 0:
                         self.net_pos_price = trade.price
             else:
-                new_pos = self.net_pos - trade.volume
+                new_pos: float = self.net_pos - trade.volume
 
                 if self.net_pos <= 0:
                     new_cost = old_cost - trade_cost
@@ -192,18 +192,18 @@ class SpreadData:
         self.leg_pos: defaultdict = defaultdict(int)
 
         # 价差计算公式相关
-        self.variable_symbols = variable_symbols
-        self.variable_directions = variable_directions
+        self.variable_symbols: dict = variable_symbols
+        self.variable_directions: dict = variable_directions
         self.price_formula = price_formula
 
         # 实盘时编译公式，加速计算
         if compile_formula:
-            self.price_code = compile(price_formula, __name__, "eval")
+            self.price_code: str = compile(price_formula, __name__, "eval")
         # 回测时不编译公式，从而支持多进程优化
         else:
-            self.price_code = price_formula
+            self.price_code: str = price_formula
 
-        self.variable_legs: dict = {}
+        self.variable_legs: Dict[str, LegData] = {}
         for variable, vt_symbol in variable_symbols.items():
             leg: LegData = self.legs[vt_symbol]
             self.variable_legs[variable] = leg
@@ -242,8 +242,8 @@ class SpreadData:
             if not trading_multiplier:
                 continue
 
-            leg_bid_volume = leg.bid_volume
-            leg_ask_volume = leg.ask_volume
+            leg_bid_volume: float = leg.bid_volume
+            leg_ask_volume: float = leg.ask_volume
 
             if trading_multiplier > 0:
                 adjusted_bid_volume: float = floor_to(
@@ -348,12 +348,12 @@ class SpreadData:
         """"""
         leg: LegData = self.legs[vt_symbol]
         trading_multiplier: int = self.trading_multipliers[leg.vt_symbol]
-        spread_volume = leg_volume / trading_multiplier
+        spread_volume: float = leg_volume / trading_multiplier
 
         if spread_volume > 0:
-            spread_volume: float = floor_to(spread_volume, self.min_volume)
+            spread_volume = floor_to(spread_volume, self.min_volume)
         else:
-            spread_volume: float = ceil_to(spread_volume, self.min_volume)
+            spread_volume = ceil_to(spread_volume, self.min_volume)
 
         return spread_volume
 
@@ -386,8 +386,8 @@ class SpreadData:
 
 
 class BacktestingMode(Enum):
-    BAR: int = 1
-    TICK: int = 2
+    BAR = 1
+    TICK = 2
 
 
 def load_bar_data(
@@ -413,7 +413,7 @@ def load_bar_data(
 
         # If failed, query history from database
         if not bar_data:
-            bar_data: List[BarData] = database.load_bar_data(
+            bar_data = database.load_bar_data(
                 symbol, exchange, interval, start, end
             )
 
@@ -440,7 +440,7 @@ def load_bar_data(
                 trading_multiplier: int = spread.trading_multipliers[leg.vt_symbol]
                 spread_value += trading_multiplier * leg_bar.close_price
             else:
-                spread_available: bool = False
+                spread_available = False
 
         if spread_available:
             spread_price = spread.parse_formula(spread.price_code, leg_data)

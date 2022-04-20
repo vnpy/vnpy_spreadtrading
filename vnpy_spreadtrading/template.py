@@ -83,7 +83,7 @@ class SpreadAlgoTemplate:
             vt_orderids: list = self.leg_orders[leg.vt_symbol]
 
             if vt_orderids:
-                finished: bool = False
+                finished = False
                 break
 
         return finished
@@ -108,9 +108,9 @@ class SpreadAlgoTemplate:
             leg_traded: float = self.leg_traded[passive_symbol]
 
             if leg_target > 0 and leg_traded < leg_target:
-                finished: bool = False
+                finished = False
             elif leg_target < 0 and leg_traded > leg_target:
-                finished: bool = False
+                finished = False
 
             if not finished:
                 break
@@ -164,7 +164,7 @@ class SpreadAlgoTemplate:
         order: OrderData = self.orders[trade.vt_orderid]
         contract: ContractData = self.get_contract(trade.vt_symbol)
 
-        trade_volume: float = round_to(
+        trade_volume = round_to(
             self.order_trade_volume[order.vt_orderid],
             contract.min_volume
         )
@@ -248,9 +248,9 @@ class SpreadAlgoTemplate:
         tick: TickData = self.get_tick(vt_symbol)
 
         if direction == Direction.LONG and tick.limit_up:
-            price: float = min(price, tick.limit_up)
+            price = min(price, tick.limit_up)
         elif direction == Direction.SHORT and tick.limit_down:
-            price: float = max(price, tick.limit_down)
+            price = max(price, tick.limit_down)
 
         # Otherwise send order
         vt_orderids: list = self.algo_engine.send_order(
@@ -300,9 +300,9 @@ class SpreadAlgoTemplate:
             adjusted_leg_traded: float = round_to(adjusted_leg_traded, spread.min_volume)
 
             if adjusted_leg_traded > 0:
-                adjusted_leg_traded: float = floor_to(adjusted_leg_traded, spread.min_volume)
+                adjusted_leg_traded = floor_to(adjusted_leg_traded, spread.min_volume)
             else:
-                adjusted_leg_traded: float = ceil_to(adjusted_leg_traded, spread.min_volume)
+                adjusted_leg_traded = ceil_to(adjusted_leg_traded, spread.min_volume)
 
             if not n:
                 self.traded = adjusted_leg_traded

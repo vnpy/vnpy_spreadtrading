@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone
@@ -430,7 +430,7 @@ def load_bar_data(
 
         leg_data: dict = {}
         for variable, leg in spread.variable_legs.items():
-            leg_bar: dict = leg_bars[leg.vt_symbol].get(dt, None)
+            leg_bar: Optional[BarData] = leg_bars[leg.vt_symbol].get(dt, None)
 
             if leg_bar:
                 # 缓存该腿当前的价格

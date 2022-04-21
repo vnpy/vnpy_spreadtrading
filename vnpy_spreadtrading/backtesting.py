@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime
-from typing import Callable, Type, Dict, List
+from typing import Callable, Type, Dict, List, Optional
 from functools import partial
 
 import numpy as np
@@ -478,7 +478,7 @@ class BacktestingEngine:
         """"""
         d: date = self.datetime.date()
 
-        daily_result: DailyResult = self.daily_results.get(d, None)
+        daily_result: Optional[DailyResult] = self.daily_results.get(d, None)
         if daily_result:
             daily_result.close_price = price
         else:

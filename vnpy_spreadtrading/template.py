@@ -617,7 +617,7 @@ class SpreadStrategyTemplate:
     ) -> str:
         """"""
         if not extra:
-            extra = None
+            extra = {}
 
         return self.start_algo(
             Direction.SHORT, price, volume,

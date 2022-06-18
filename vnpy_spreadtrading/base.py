@@ -21,6 +21,8 @@ EVENT_SPREAD_STRATEGY = "eSpreadStrategy"
 
 LOCAL_TZ = get_localzone()
 
+MAX_SPREAD_TIMEOUT = 30 # 有滞后三十秒的腿，不计算价差
+
 
 class LegData:
     """"""
@@ -46,10 +48,11 @@ class LegData:
         self.tick: TickData = None
 
         # Contract data
-        self.size: float = 0
+        self.size: float = 0                #lot_size, 最小成交量，A股100，期货1
         self.net_position: bool = False
         self.min_volume: float = 0
         self.pricetick: float = 0
+        self.last_dt = datetime(year=1900, month=1, day=1, hour=1, minute=0, second=0, tzinfo=None)
 
     def update_contract(self, contract: ContractData):
         """"""
@@ -65,7 +68,7 @@ class LegData:
         self.bid_volume = tick.bid_volume_1
         self.ask_volume = tick.ask_volume_1
         self.last_price = tick.last_price
-
+        self.last_dt = tick.datetime.replace(tzinfo=None)
         self.tick = tick
 
     def update_position(self, position: PositionData):
@@ -214,6 +217,7 @@ class SpreadData:
 
         1. 如果各条腿价格均有效，则计算成功，返回True
         2. 反之只要有一条腿的价格无效，则计算失败，返回False
+        3：每条腿最后更新时间与当前间相差特定时间以内，才计算价格， 默认30s
         """
         self.clear_price()
 
@@ -221,13 +225,15 @@ class SpreadData:
         bid_data = {}
         ask_data = {}
         volume_inited = False
-
+        current_dt = datetime.now().replace(tzinfo=None)
         for variable, leg in self.variable_legs.items():
             # Filter not all leg price data has been received
             if not leg.bid_volume or not leg.ask_volume:
                 self.clear_price()
                 return False
-
+            if abs((current_dt - leg.last_dt).seconds) > MAX_SPREAD_TIMEOUT:
+                self.clear_price()
+                return False
             # Generate price dict for calculating spread bid/ask
             variable_direction = self.variable_directions[variable]
             if variable_direction > 0:
@@ -338,14 +344,24 @@ class SpreadData:
         self.ask_volume = 0
 
     def calculate_leg_volume(self, vt_symbol: str, spread_volume: float) -> float:
-        """"""
+        """
+        计算标的交易volume = 此标的预设交易乘数 * 价差交易量
+        :param vt_symbol:
+        :param spread_volume:
+        :return:
+        """
         leg = self.legs[vt_symbol]
         trading_multiplier = self.trading_multipliers[leg.vt_symbol]
         leg_volume = spread_volume * trading_multiplier
         return leg_volume
 
     def calculate_spread_volume(self, vt_symbol: str, leg_volume: float) -> float:
-        """"""
+        """
+        已知价差交易量，计算 标的应交易量
+        :param vt_symbol:
+        :param leg_volume:  已经交易的量
+        :return: 换算成这条腿已经交易的量
+        """
         leg = self.legs[vt_symbol]
         trading_multiplier = self.trading_multipliers[leg.vt_symbol]
         spread_volume = leg_volume / trading_multiplier

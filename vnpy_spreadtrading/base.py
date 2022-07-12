@@ -186,7 +186,10 @@ class SpreadData:
         self.bid_volume: float = 0
         self.ask_volume: float = 0
 
-        self.net_pos: float = 0
+        self.long_pos: int = 0
+        self.short_pos: int = 0
+        self.net_pos: int = 0
+
         self.datetime: datetime = None
 
         self.leg_pos: Dict[str, int] = defaultdict(int)
@@ -325,10 +328,9 @@ class SpreadData:
                 long_pos = min(long_pos, leg_long_pos)
                 short_pos = min(short_pos, leg_short_pos)
 
-        if long_pos > 0:
-            self.net_pos = long_pos
-        else:
-            self.net_pos = -short_pos
+        self.long_pos = long_pos
+        self.short_pos = short_pos
+        self.net_pos = long_pos - short_pos
 
     def clear_price(self):
         """"""

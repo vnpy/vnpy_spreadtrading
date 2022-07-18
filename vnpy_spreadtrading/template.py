@@ -600,7 +600,7 @@ class SpreadStrategyTemplate:
     ) -> str:
         """"""
         if not extra:
-            extra: dict = {}
+            extra = {}
 
         return self.start_algo(
             Direction.LONG, price, volume,

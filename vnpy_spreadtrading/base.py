@@ -2,13 +2,13 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from enum import Enum
-from tzlocal import get_localzone
+from tzlocal import get_localzone_name
 
 from vnpy.trader.object import (
     HistoryRequest, TickData, PositionData, TradeData, ContractData, BarData
 )
 from vnpy.trader.constant import Direction, Offset, Exchange, Interval
-from vnpy.trader.utility import floor_to, ceil_to, round_to, extract_vt_symbol
+from vnpy.trader.utility import floor_to, ceil_to, round_to, extract_vt_symbol, ZoneInfo
 from vnpy.trader.database import BaseDatabase, get_database
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
@@ -19,7 +19,7 @@ EVENT_SPREAD_LOG = "eSpreadLog"
 EVENT_SPREAD_ALGO = "eSpreadAlgo"
 EVENT_SPREAD_STRATEGY = "eSpreadStrategy"
 
-LOCAL_TZ = get_localzone()
+LOCAL_TZ = ZoneInfo(get_localzone_name())
 
 
 class LegData:

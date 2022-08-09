@@ -3,6 +3,7 @@ Widget for spread trading.
 """
 
 from typing import Dict, List, Any
+
 from vnpy.event import EventEngine, Event
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.object import LogData

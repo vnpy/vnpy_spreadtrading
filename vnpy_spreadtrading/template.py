@@ -1,5 +1,4 @@
 from collections import defaultdict
-from re import T
 from typing import Dict, List, Set, Callable, TYPE_CHECKING, Optional
 from copy import copy
 

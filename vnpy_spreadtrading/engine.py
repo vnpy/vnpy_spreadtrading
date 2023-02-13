@@ -23,7 +23,6 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import (
     Direction, Offset, OrderType, Interval
 )
-from vnpy.trader.converter import OffsetConverter
 
 from .base import (
     LegData, SpreadData,
@@ -47,10 +46,6 @@ class SpreadEngine(BaseEngine):
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.active: bool = False
-
-        self.offset_converter: OffsetConverter = OffsetConverter(
-            self.main_engine
-        )
 
         self.data_engine: SpreadDataEngine = SpreadDataEngine(self)
         self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
@@ -375,7 +370,6 @@ class SpreadAlgoEngine:
         self.data_engine: SpreadDataEngine = spread_engine.data_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
-        self.offset_converter: OffsetConverter = spread_engine.offset_converter
 
         self.write_log = spread_engine.write_log
 
@@ -404,7 +398,6 @@ class SpreadAlgoEngine:
         self.event_engine.register(EVENT_TICK, self.process_tick_event)
         self.event_engine.register(EVENT_ORDER, self.process_order_event)
         self.event_engine.register(EVENT_TRADE, self.process_trade_event)
-        self.event_engine.register(EVENT_POSITION, self.process_position_event)
         self.event_engine.register(EVENT_TIMER, self.process_timer_event)
         self.event_engine.register(
             EVENT_SPREAD_DATA, self.process_spread_event
@@ -433,8 +426,6 @@ class SpreadAlgoEngine:
         """"""
         order: OrderData = event.data
 
-        self.offset_converter.update_order(order)
-
         algo: SpreadAlgoTemplate = self.order_algo_map.get(order.vt_orderid, None)
         if algo and algo.is_active():
             algo.update_order(order)
@@ -448,17 +439,9 @@ class SpreadAlgoEngine:
             return
         self.vt_tradeids.add(trade.vt_tradeid)
 
-        self.offset_converter.update_trade(trade)
-
         algo: SpreadAlgoTemplate = self.order_algo_map.get(trade.vt_orderid, None)
         if algo and algo.is_active():
             algo.update_trade(trade)
-
-    def process_position_event(self, event: Event) -> None:
-        """"""
-        position: PositionData = event.data
-
-        self.offset_converter.update_position(position)
 
     def process_timer_event(self, event: Event) -> None:
         """"""
@@ -572,8 +555,12 @@ class SpreadAlgoEngine:
         net: bool = not lock
 
         # 执行委托转换
-        req_list: List[OrderRequest] = self.offset_converter.convert_order_request(
-            original_req, lock, net)
+        req_list: List[OrderRequest] = self.main_engine.convert_order_request(
+            original_req,
+            contract.gateway_name,
+            lock,
+            net
+        )
 
         # Send Orders
         vt_orderids: list = []
@@ -588,7 +575,7 @@ class SpreadAlgoEngine:
 
             vt_orderids.append(vt_orderid)
 
-            self.offset_converter.update_order_request(req, vt_orderid)
+            self.main_engine.update_order_request(req, vt_orderid, contract.gateway_name)
 
             # Save relationship between orderid and algo.
             self.order_algo_map[vt_orderid] = algo
@@ -627,7 +614,6 @@ class SpreadStrategyEngine:
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
-        self.offset_converter: OffsetConverter = spread_engine.offset_converter
 
         self.write_log = spread_engine.write_log
 
@@ -1003,8 +989,11 @@ class SpreadStrategyEngine:
         )
 
         # Convert with offset converter
-        req_list: List[OrderRequest] = self.offset_converter.convert_order_request(
-            original_req, lock)
+        req_list: List[OrderRequest] = self.main_engine.convert_order_request(
+            original_req,
+            contract.gateway_name,
+            lock
+        )
 
         # Send Orders
         vt_orderids: list = []
@@ -1019,7 +1008,7 @@ class SpreadStrategyEngine:
 
             vt_orderids.append(vt_orderid)
 
-            self.offset_converter.update_order_request(req, vt_orderid)
+            self.main_engine.update_order_request(req, vt_orderid, contract.gateway_name)
 
             # Save relationship between orderid and strategy.
             self.order_strategy_map[vt_orderid] = strategy

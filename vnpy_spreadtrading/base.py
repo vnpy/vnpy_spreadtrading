@@ -409,8 +409,8 @@ def load_bar_data(
     for vt_symbol in spread.legs.keys():
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
-        # First, try to query history from RQData
-        bar_data: List[BarData] = query_bar_from_rq(
+        # First, try to query history from datafeed
+        bar_data: List[BarData] = query_bar_from_datafeed(
             symbol, exchange, interval, start, end, output
         )
 
@@ -479,7 +479,7 @@ def load_tick_data(
     )
 
 
-def query_bar_from_rq(
+def query_bar_from_datafeed(
     symbol: str,
     exchange: Exchange,
     interval: Interval,

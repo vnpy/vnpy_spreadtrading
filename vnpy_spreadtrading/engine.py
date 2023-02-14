@@ -1057,7 +1057,7 @@ class SpreadStrategyEngine:
         end: datetime = datetime.now()
         start: datetime = end - timedelta(days)
 
-        bars: List[BarData] = load_bar_data(spread, interval, start, end)
+        bars: List[BarData] = load_bar_data(spread, interval, start, end, output=self.write_log)
 
         for bar in bars:
             callback(bar)

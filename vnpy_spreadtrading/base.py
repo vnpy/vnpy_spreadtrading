@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone_name
@@ -397,7 +397,8 @@ def load_bar_data(
     interval: Interval,
     start: datetime,
     end: datetime,
-    pricetick: float = 0
+    pricetick: float = 0,
+    output: Callable = print
 ) -> List[BarData]:
     """"""
     database: BaseDatabase = get_database()
@@ -410,7 +411,7 @@ def load_bar_data(
 
         # First, try to query history from RQData
         bar_data: List[BarData] = query_bar_from_rq(
-            symbol, exchange, interval, start, end
+            symbol, exchange, interval, start, end, output
         )
 
         # If failed, query history from database
@@ -483,7 +484,8 @@ def query_bar_from_rq(
     exchange: Exchange,
     interval: Interval,
     start: datetime,
-    end: datetime
+    end: datetime,
+    output: Callable = print
 ) -> List[BarData]:
     """
     Query bar data from RQData.
@@ -497,5 +499,5 @@ def query_bar_from_rq(
         start=start,
         end=end
     )
-    data: List[BarData] = datafeed.query_bar_history(req)
+    data: List[BarData] = datafeed.query_bar_history(req, output)
     return data

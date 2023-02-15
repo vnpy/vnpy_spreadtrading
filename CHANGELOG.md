@@ -1,3 +1,8 @@
+# 1.1.6版本
+
+1. 改为使用OmsEngine提供的OffsetConverter组件
+2. 添加回测中统计绩效时对于爆仓情况的检查
+
 # 1.1.5版本
 
 1. 使用zoneinfo替换pytz库

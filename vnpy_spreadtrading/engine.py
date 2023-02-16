@@ -274,11 +274,9 @@ class SpreadDataEngine:
                 self.main_engine.subscribe(req, contract.gateway_name)
 
             # Initialize leg position
-            for direction in Direction:
-                vt_positionid: str = f"{vt_symbol}.{direction.value}"
-                position: Optional[PositionData] = self.main_engine.get_position(vt_positionid)
-
-                if position:
+            positions: List[PositionData] = self.main_engine.get_all_positions()
+            for position in positions:
+                if position.vt_symbol == vt_symbol:
                     leg.update_position(position)
 
         return leg

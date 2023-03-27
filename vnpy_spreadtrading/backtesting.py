@@ -142,11 +142,12 @@ class BacktestingEngine:
 
         if self.mode == BacktestingMode.BAR:
             self.history_data = load_bar_data(
-                self.spread,
-                self.interval,
-                self.start,
-                self.end,
-                self.pricetick
+                spread=self.spread,
+                interval=self.interval,
+                start=self.start,
+                end=self.end,
+                pricetick=self.pricetick,
+                backtesting=True
             )
         else:
             self.history_data = load_tick_data(

@@ -398,7 +398,8 @@ def load_bar_data(
     start: datetime,
     end: datetime,
     pricetick: float = 0,
-    output: Callable = print
+    output: Callable = print,
+    backtesting: bool = False
 ) -> List[BarData]:
     """"""
     database: BaseDatabase = get_database()
@@ -409,12 +410,16 @@ def load_bar_data(
     for vt_symbol in spread.legs.keys():
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
-        # First, try to query history from datafeed
-        bar_data: List[BarData] = query_bar_from_datafeed(
-            symbol, exchange, interval, start, end, output
-        )
+        # 初始化K线列表
+        bar_data: List[BarData] = [] 
 
-        # If failed, query history from database
+        # 只有实盘才优先尝试从数据服务查询
+        if not backtesting:
+            bar_data = query_bar_from_datafeed(
+                symbol, exchange, interval, start, end, output
+            )
+
+        # 如果查询失败，则尝试从数据库中读取
         if not bar_data:
             bar_data = database.load_bar_data(
                 symbol, exchange, interval, start, end

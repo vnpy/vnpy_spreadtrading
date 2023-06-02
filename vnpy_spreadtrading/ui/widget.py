@@ -40,7 +40,7 @@ class SpreadManager(QtWidgets.QWidget):
         self.main_engine: MainEngine = main_engine
         self.event_engine: EventEngine = event_engine
 
-        self.spread_engine: BaseEngine = main_engine.get_engine(APP_NAME)
+        self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
 
         self.init_ui()
 
@@ -61,12 +61,14 @@ class SpreadManager(QtWidgets.QWidget):
             self.event_engine
         )
         self.algo_monitor: SpreadAlgoMonitor = SpreadAlgoMonitor(
-            self.spread_engine
+            self.main_engine,
+            self.event_engine
         )
-
         self.strategy_monitor: SpreadStrategyMonitor = SpreadStrategyMonitor(
-            self.spread_engine
+            self.main_engine,
+            self.event_engine
         )
+        self.strategy_monitor.spread_engine = self.spread_engine
 
         grid: QtWidgets.QGridLayout = QtWidgets.QGridLayout()
         grid.addWidget(self.create_group("价差", self.data_monitor), 0, 0)
@@ -99,7 +101,70 @@ class SpreadManager(QtWidgets.QWidget):
         return group
 
 
-class SpreadDataMonitor(BaseMonitor):
+class SpreadMonitor(BaseMonitor):
+    """
+    Monitor Template for algo status and spread data.
+    """
+
+    def process_event(self, event: Event) -> None:
+        """
+        Process new data from event and update into table.
+        """
+        # Disable sorting to prevent unwanted error.
+        if self.sorting:
+            self.setSortingEnabled(False)
+
+        # Update data into table.
+        data = event.data
+
+        if not self.data_key:
+            self.insert_new_row(data)
+        else:
+            key: str = data[self.data_key]
+
+            if key in self.cells:
+                self.update_old_row(data)
+            else:
+                self.insert_new_row(data)
+
+        # Enable sorting
+        if self.sorting:
+            self.setSortingEnabled(True)
+
+    def insert_new_row(self, data: Any) -> None:
+        """
+        Insert a new row at the top of table.
+        """
+        self.insertRow(0)
+
+        row_cells: dict = {}
+        for column, header in enumerate(self.headers.keys()):
+            setting: dict = self.headers[header]
+
+            content = data[header]
+            cell: QtWidgets.QTableWidgetItem = setting["cell"](content, data)
+            self.setItem(0, column, cell)
+
+            if setting["update"]:
+                row_cells[header] = cell
+
+        if self.data_key:
+            key: str = data[self.data_key]
+            self.cells[key] = row_cells
+
+    def update_old_row(self, data: Any) -> None:
+        """
+        Update an old row in table.
+        """
+        key: str = data[self.data_key]
+        row_cells = self.cells[key]
+
+        for header, cell in row_cells.items():
+            content = data[header]
+            cell.set_content(content, data)
+
+
+class SpreadDataMonitor(SpreadMonitor):
     """
     Monitor for spread data.
     """
@@ -161,7 +226,7 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
         self.append(msg)
 
 
-class SpreadAlgoMonitor(BaseMonitor):
+class SpreadAlgoMonitor(SpreadMonitor):
     """
     Monitor for algo status.
     """
@@ -184,12 +249,6 @@ class SpreadAlgoMonitor(BaseMonitor):
         "status": {"display": "状态", "cell": EnumCell, "update": True},
     }
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
-        super().__init__(spread_engine.main_engine, spread_engine.event_engine)
-
-        self.spread_engine: SpreadEngine = spread_engine
-
     def init_ui(self) -> None:
         """
         Connect signal.
@@ -204,7 +263,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         Stop algo if cell double clicked.
         """
         algo = cell.get_data()
-        self.spread_engine.stop_algo(algo.algoid)
+        self.main_engine.spread_engine.stop_algo(algo["algoid"])
 
 
 class SpreadAlgoWidget(QtWidgets.QFrame):
@@ -262,13 +321,13 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         add_button.clicked.connect(self.add_strategy)
 
         init_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部初始化")
-        init_button.clicked.connect(self.strategy_engine.init_all_strategies)
+        init_button.clicked.connect(self.spread_engine.init_all_strategies)
 
         start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部启动")
-        start_button.clicked.connect(self.strategy_engine.start_all_strategies)
+        start_button.clicked.connect(self.spread_engine.start_all_strategies)
 
         stop_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部停止")
-        stop_button.clicked.connect(self.strategy_engine.stop_all_strategies)
+        stop_button.clicked.connect(self.spread_engine.stop_all_strategies)
 
         add_spread_button: QtWidgets.QPushButton = QtWidgets.QPushButton("创建价差")
         add_spread_button.clicked.connect(self.add_spread)
@@ -333,7 +392,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         """"""
         self.class_combo.clear()
         self.class_combo.addItems(
-            self.strategy_engine.get_all_strategy_class_names()
+            self.spread_engine.get_all_strategy_class_names()
         )
 
     def remove_strategy(self, strategy_name) -> None:
@@ -347,7 +406,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         if not class_name:
             return
 
-        parameters: dict = self.strategy_engine.get_strategy_class_parameters(
+        parameters: dict = self.spread_engine.get_strategy_class_parameters(
             class_name)
         editor: SettingEditor = SettingEditor(parameters, class_name=class_name)
         n: int = editor.exec_()
@@ -357,7 +416,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             spread_name: str = setting.pop("spread_name")
             strategy_name: str = setting.pop("strategy_name")
 
-            self.strategy_engine.add_strategy(
+            self.spread_engine.add_strategy(
                 class_name, strategy_name, spread_name, setting
             )
 
@@ -402,14 +461,15 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
 class SpreadStrategyMonitor(QtWidgets.QWidget):
     """"""
 
+    strategy_engine: SpreadStrategyEngine = None
+
     signal_strategy: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         super().__init__()
 
-        self.strategy_engine: SpreadStrategyEngine = spread_engine.strategy_engine
-        self.main_engine: MainEngine = spread_engine.main_engine
-        self.event_engine: EventEngine = spread_engine.event_engine
+        self.main_engine: MainEngine = main_engine
+        self.event_engine: EventEngine = event_engine
 
         self.managers: Dict[str, SpreadStrategyWidget] = {}
 

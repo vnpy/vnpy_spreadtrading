@@ -59,6 +59,13 @@ class SpreadEngine(BaseEngine):
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
 
+        self.get_all_strategy_class_names = self.strategy_engine.get_all_strategy_class_names
+        self.get_strategy_class_parameters = self.strategy_engine.get_strategy_class_parameters
+        self.init_all_strategies = self.strategy_engine.init_all_strategies
+        self.start_all_strategies = self.strategy_engine.start_all_strategies
+        self.stop_all_strategies = self.strategy_engine.stop_all_strategies
+        self.add_strategy = self.strategy_engine.add_strategy
+
     def start(self) -> None:
         """"""
         if self.active:
@@ -77,7 +84,7 @@ class SpreadEngine(BaseEngine):
 
     def write_log(self, msg: str) -> None:
         """"""
-        log: LegData = LogData(
+        log: LogData = LogData(
             msg=msg,
             gateway_name=APP_NAME
         )
@@ -246,12 +253,14 @@ class SpreadDataEngine:
 
     def put_data_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_DATA, spread)
+        d: dict = copy(spread).__dict__
+        d.pop("price_code")
+        event: Event = Event(EVENT_SPREAD_DATA, d)
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_POS, spread)
+        event: Event = Event(EVENT_SPREAD_POS, spread.__dict__)
         self.event_engine.put(event)
 
     def get_leg(self, vt_symbol: str) -> LegData:
@@ -403,8 +412,8 @@ class SpreadAlgoEngine:
 
     def process_spread_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        self.spreads[spread.name] = spread
+        spread_dict: dict = event.data
+        self.spreads[spread_dict["name"]] = self.data_engine.spreads[spread_dict["name"]]
 
     def process_tick_event(self, event: Event) -> None:
         """"""
@@ -511,7 +520,9 @@ class SpreadAlgoEngine:
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_ALGO, algo)
+        d: dict = copy(algo).__dict__
+        d.pop("algo_engine")
+        event: Event = Event(EVENT_SPREAD_ALGO, d)
         self.event_engine.put(event)
 
     def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
@@ -726,8 +737,8 @@ class SpreadStrategyEngine:
 
     def process_spread_data_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        spread_dict: dict = event.data
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_dict["name"]]
 
         for strategy in strategies:
             if strategy.inited:
@@ -735,8 +746,8 @@ class SpreadStrategyEngine:
 
     def process_spread_pos_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        spread_dict: dict = event.data
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_dict["name"]]
 
         for strategy in strategies:
             if strategy.inited:
@@ -744,12 +755,13 @@ class SpreadStrategyEngine:
 
     def process_spread_algo_event(self, event: Event) -> None:
         """"""
-        algo: SpreadAlgoTemplate = event.data
-        strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
-
-        if strategy:
-            self.call_strategy_func(
-                strategy, strategy.update_spread_algo, algo)
+        algo_dict: dict = event.data
+        algo: SpreadAlgoTemplate = self.spread_engine.algo_engine.algos.get(algo_dict["algoid"], None)
+        if algo:
+            strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
+            if strategy:
+                self.call_strategy_func(
+                    strategy, strategy.update_spread_algo, algo)
 
     def process_order_event(self, event: Event) -> None:
         """"""

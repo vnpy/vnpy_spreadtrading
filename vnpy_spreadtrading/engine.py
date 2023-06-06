@@ -56,6 +56,9 @@ class SpreadEngine(BaseEngine):
         self.get_spread = self.data_engine.get_spread
         self.get_all_spreads = self.data_engine.get_all_spreads
 
+        # 增加get_all_spreadnames函数
+        self.get_all_spreadnames = self.data_engine.get_all_spreadnames
+
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
 
@@ -77,7 +80,7 @@ class SpreadEngine(BaseEngine):
 
     def write_log(self, msg: str) -> None:
         """"""
-        log: LegData = LogData(
+        log: LogData = LogData(
             msg=msg,
             gateway_name=APP_NAME
         )
@@ -352,6 +355,10 @@ class SpreadDataEngine:
     def get_all_spreads(self) -> List[SpreadData]:
         """"""
         return list(self.spreads.values())
+
+    def get_all_spreadnames(self) -> List[str]:
+        """"""
+        return list(self.spreads.keys())
 
     def update_order_spread_map(self, vt_orderid: str, spread: SpreadData) -> None:
         """更新委托号对应的价差映射关系"""

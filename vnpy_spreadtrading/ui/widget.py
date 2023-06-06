@@ -379,9 +379,10 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setMinimumWidth(300)
 
         self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
-        spreads: List[SpreadData] = self.spread_engine.get_all_spreads()
-        for spread in spreads:
-            self.name_combo.addItem(spread.name)
+        # 用get_all_spreadnames替换get_all_spreads
+        names: List[SpreadData] = self.spread_engine.get_all_spreadnames()
+        for name in names:
+            self.name_combo.addItem(name)
 
         button_remove: QtWidgets.QPushButton = QtWidgets.QPushButton("移除")
         button_remove.clicked.connect(self.remove_spread)

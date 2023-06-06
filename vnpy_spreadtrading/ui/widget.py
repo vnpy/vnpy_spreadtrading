@@ -127,6 +127,63 @@ class SpreadDataMonitor(BaseMonitor):
         super().register_event()
         self.event_engine.register(EVENT_SPREAD_POS, self.signal.emit)
 
+    def process_event(self, event: Event) -> None:
+        """
+        Process new data from event and update into table.
+        """
+        # Disable sorting to prevent unwanted error.
+        if self.sorting:
+            self.setSortingEnabled(False)
+
+        # Update data into table.
+        data = event.data
+
+        if not self.data_key:
+            self.insert_new_row(data)
+        else:
+            key: str = data[self.data_key]
+
+            if key in self.cells:
+                self.update_old_row(data)
+            else:
+                self.insert_new_row(data)
+
+        # Enable sorting
+        if self.sorting:
+            self.setSortingEnabled(True)
+
+    def insert_new_row(self, data: Any) -> None:
+        """
+        Insert a new row at the top of table.
+        """
+        self.insertRow(0)
+
+        row_cells: dict = {}
+        for column, header in enumerate(self.headers.keys()):
+            setting: dict = self.headers[header]
+
+            content = data[header]
+            cell: QtWidgets.QTableWidgetItem = setting["cell"](content, data)
+            self.setItem(0, column, cell)
+
+            if setting["update"]:
+                row_cells[header] = cell
+
+        if self.data_key:
+            key: str = data[self.data_key]
+            self.cells[key] = row_cells
+
+    def update_old_row(self, data: Any) -> None:
+        """
+        Update an old row in table.
+        """
+        key: str = data[self.data_key]
+        row_cells = self.cells[key]
+
+        for header, cell in row_cells.items():
+            content = data[header]
+            cell.set_content(content, data)
+
 
 class SpreadLogMonitor(QtWidgets.QTextEdit):
     """
@@ -205,6 +262,63 @@ class SpreadAlgoMonitor(BaseMonitor):
         """
         algo = cell.get_data()
         self.spread_engine.stop_algo(algo.algoid)
+
+    def process_event(self, event: Event) -> None:
+        """
+        Process new data from event and update into table.
+        """
+        # Disable sorting to prevent unwanted error.
+        if self.sorting:
+            self.setSortingEnabled(False)
+
+        # Update data into table.
+        data = event.data
+
+        if not self.data_key:
+            self.insert_new_row(data)
+        else:
+            key: str = data[self.data_key]
+
+            if key in self.cells:
+                self.update_old_row(data)
+            else:
+                self.insert_new_row(data)
+
+        # Enable sorting
+        if self.sorting:
+            self.setSortingEnabled(True)
+
+    def insert_new_row(self, data: Any) -> None:
+        """
+        Insert a new row at the top of table.
+        """
+        self.insertRow(0)
+
+        row_cells: dict = {}
+        for column, header in enumerate(self.headers.keys()):
+            setting: dict = self.headers[header]
+
+            content = data[header]
+            cell: QtWidgets.QTableWidgetItem = setting["cell"](content, data)
+            self.setItem(0, column, cell)
+
+            if setting["update"]:
+                row_cells[header] = cell
+
+        if self.data_key:
+            key: str = data[self.data_key]
+            self.cells[key] = row_cells
+
+    def update_old_row(self, data: Any) -> None:
+        """
+        Update an old row in table.
+        """
+        key: str = data[self.data_key]
+        row_cells = self.cells[key]
+
+        for header, cell in row_cells.items():
+            content = data[header]
+            cell.set_content(content, data)
 
 
 class SpreadAlgoWidget(QtWidgets.QFrame):

@@ -429,7 +429,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             volume=float(self.volume_line.text()),
             payup=int(self.payup_line.text()),
             interval=int(self.interval_line.text()),
-            lock=lock,
+            islock=lock,
             extra={}
         )
 

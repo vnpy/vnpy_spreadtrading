@@ -473,7 +473,7 @@ class SpreadAlgoEngine:
         volume: float,
         payup: int,
         interval: int,
-        lock: bool,
+        islock: bool,
         extra: dict
     ) -> str:
         # Find spread object
@@ -497,7 +497,7 @@ class SpreadAlgoEngine:
             volume,
             payup,
             interval,
-            lock,
+            islock,
             extra
         )
         self.algos[algoid] = algo

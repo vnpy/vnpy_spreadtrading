@@ -249,12 +249,18 @@ class SpreadDataEngine:
 
     def put_data_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_DATA, spread)
+        # pop掉无法dump的price_code再put_event
+        d: dict = copy(spread).__dict__
+        d.pop("price_code")
+        event: Event = Event(EVENT_SPREAD_DATA, d)
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_POS, spread)
+        # pop掉无法dump的price_code再put_event
+        d: dict = copy(spread).__dict__
+        d.pop("price_code")
+        event: Event = Event(EVENT_SPREAD_POS, d)
         self.event_engine.put(event)
 
     def get_leg(self, vt_symbol: str) -> LegData:
@@ -410,8 +416,9 @@ class SpreadAlgoEngine:
 
     def process_spread_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        self.spreads[spread.name] = spread
+        # 修改获取spread的方式
+        spread_dict: dict = event.data
+        self.spreads[spread_dict["name"]] = self.data_engine.spreads[spread_dict["name"]]
 
     def process_tick_event(self, event: Event) -> None:
         """"""
@@ -518,7 +525,11 @@ class SpreadAlgoEngine:
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_ALGO, algo)
+        # pop掉无法dump的algo_engine和spread再put_event
+        d: dict = copy(algo).__dict__
+        d.pop("algo_engine")
+        d.pop("spread")
+        event: Event = Event(EVENT_SPREAD_ALGO, d)
         self.event_engine.put(event)
 
     def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
@@ -733,8 +744,9 @@ class SpreadStrategyEngine:
 
     def process_spread_data_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        # 修改获取strategies的方式
+        spread_dict: dict = event.data
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_dict["name"]]
 
         for strategy in strategies:
             if strategy.inited:
@@ -742,8 +754,9 @@ class SpreadStrategyEngine:
 
     def process_spread_pos_event(self, event: Event) -> None:
         """"""
-        spread: SpreadData = event.data
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        # 修改获取strategies的方式
+        spread_dict: dict = event.data
+        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_dict["name"]]
 
         for strategy in strategies:
             if strategy.inited:
@@ -751,12 +764,14 @@ class SpreadStrategyEngine:
 
     def process_spread_algo_event(self, event: Event) -> None:
         """"""
-        algo: SpreadAlgoTemplate = event.data
-        strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
-
-        if strategy:
-            self.call_strategy_func(
-                strategy, strategy.update_spread_algo, algo)
+        # 修改获取algo的方式
+        algo_dict: dict = event.data
+        algo: SpreadAlgoTemplate = self.spread_engine.algo_engine.algos.get(algo_dict["algoid"], None)
+        if algo:
+            strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
+            if strategy:
+                self.call_strategy_func(
+                    strategy, strategy.update_spread_algo, algo)
 
     def process_order_event(self, event: Event) -> None:
         """"""

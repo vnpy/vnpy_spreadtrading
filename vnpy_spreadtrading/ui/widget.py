@@ -17,7 +17,6 @@ from vnpy.trader.ui.widget import (
 )
 
 from ..engine import (
-    BaseEngine,
     SpreadEngine,
     SpreadStrategyEngine,
     SpreadData,
@@ -40,7 +39,7 @@ class SpreadManager(QtWidgets.QWidget):
         self.main_engine: MainEngine = main_engine
         self.event_engine: EventEngine = event_engine
 
-        self.spread_engine: BaseEngine = main_engine.get_engine(APP_NAME)
+        self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
 
         self.init_ui()
 
@@ -56,17 +55,23 @@ class SpreadManager(QtWidgets.QWidget):
             self.main_engine,
             self.event_engine
         )
+
         self.log_monitor: SpreadLogMonitor = SpreadLogMonitor(
             self.main_engine,
             self.event_engine
         )
+
         self.algo_monitor: SpreadAlgoMonitor = SpreadAlgoMonitor(
-            self.spread_engine
+            self.main_engine,
+            self.event_engine
         )
+        self.algo_monitor.spread_engine = self.spread_engine
 
         self.strategy_monitor: SpreadStrategyMonitor = SpreadStrategyMonitor(
-            self.spread_engine
+            self.main_engine,
+            self.event_engine
         )
+        self.strategy_monitor.spread_engine = self.spread_engine
 
         grid: QtWidgets.QGridLayout = QtWidgets.QGridLayout()
         grid.addWidget(self.create_group("价差", self.data_monitor), 0, 0)
@@ -223,6 +228,8 @@ class SpreadAlgoMonitor(BaseMonitor):
     Monitor for algo status.
     """
 
+    spread_engine: SpreadEngine = None
+
     event_type: str = EVENT_SPREAD_ALGO
     data_key: str = "algoid"
     sorting: bool = False
@@ -241,12 +248,6 @@ class SpreadAlgoMonitor(BaseMonitor):
         "status": {"display": "状态", "cell": EnumCell, "update": True},
     }
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
-        super().__init__(spread_engine.main_engine, spread_engine.event_engine)
-
-        self.spread_engine: SpreadEngine = spread_engine
-
     def init_ui(self) -> None:
         """
         Connect signal.
@@ -261,7 +262,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         Stop algo if cell double clicked.
         """
         algo = cell.get_data()
-        self.spread_engine.stop_algo(algo.algoid)
+        self.spread_engine.stop_algo(algo["algoid"])
 
     def process_event(self, event: Event) -> None:
         """
@@ -376,13 +377,13 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         add_button.clicked.connect(self.add_strategy)
 
         init_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部初始化")
-        init_button.clicked.connect(self.strategy_engine.init_all_strategies)
+        init_button.clicked.connect(self.spread_engine.init_all_strategies)
 
         start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部启动")
-        start_button.clicked.connect(self.strategy_engine.start_all_strategies)
+        start_button.clicked.connect(self.spread_engine.start_all_strategies)
 
         stop_button: QtWidgets.QPushButton = QtWidgets.QPushButton("全部停止")
-        stop_button.clicked.connect(self.strategy_engine.stop_all_strategies)
+        stop_button.clicked.connect(self.spread_engine.stop_all_strategies)
 
         add_spread_button: QtWidgets.QPushButton = QtWidgets.QPushButton("创建价差")
         add_spread_button.clicked.connect(self.add_spread)
@@ -447,7 +448,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         """"""
         self.class_combo.clear()
         self.class_combo.addItems(
-            self.strategy_engine.get_all_strategy_class_names()
+            self.spread_engine.get_all_strategy_class_names()
         )
 
     def remove_strategy(self, strategy_name) -> None:
@@ -461,7 +462,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         if not class_name:
             return
 
-        parameters: dict = self.strategy_engine.get_strategy_class_parameters(
+        parameters: dict = self.spread_engine.get_strategy_class_parameters(
             class_name)
         editor: SettingEditor = SettingEditor(parameters, class_name=class_name)
         n: int = editor.exec_()
@@ -471,7 +472,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             spread_name: str = setting.pop("spread_name")
             strategy_name: str = setting.pop("strategy_name")
 
-            self.strategy_engine.add_strategy(
+            self.spread_engine.add_strategy(
                 class_name, strategy_name, spread_name, setting
             )
 
@@ -493,6 +494,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setMinimumWidth(300)
 
         self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+
         # 用get_all_spreadnames替换get_all_spreads
         names: List[SpreadData] = self.spread_engine.get_all_spreadnames()
         for name in names:
@@ -517,14 +519,15 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
 class SpreadStrategyMonitor(QtWidgets.QWidget):
     """"""
 
+    spread_engine: SpreadEngine = None
+
     signal_strategy: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
 
-    def __init__(self, spread_engine: SpreadEngine) -> None:
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         super().__init__()
 
-        self.strategy_engine: SpreadStrategyEngine = spread_engine.strategy_engine
-        self.main_engine: MainEngine = spread_engine.main_engine
-        self.event_engine: EventEngine = spread_engine.event_engine
+        self.main_engine: MainEngine = main_engine
+        self.event_engine: EventEngine = event_engine
 
         self.managers: Dict[str, SpreadStrategyWidget] = {}
 
@@ -566,7 +569,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             manager: SpreadStrategyWidget = self.managers[strategy_name]
             manager.update_data(data)
         else:
-            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.strategy_engine, data)
+            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.spread_engine, data)
             self.scroll_layout.insertWidget(0, manager)
             self.managers[strategy_name] = manager
 
@@ -584,14 +587,14 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
     def __init__(
         self,
         strategy_monitor: SpreadStrategyMonitor,
-        strategy_engine: SpreadStrategyEngine,
+        spread_engine: SpreadEngine,
         data: dict
     ) -> None:
         """"""
         super().__init__()
 
         self.strategy_monitor: SpreadStrategyMonitor = strategy_monitor
-        self.strategy_engine: SpreadStrategyEngine = strategy_engine
+        self.spread_engine: SpreadEngine = spread_engine
 
         self.strategy_name: str = data["strategy_name"]
         self._data: dict = data
@@ -656,32 +659,32 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
 
     def init_strategy(self) -> None:
         """"""
-        self.strategy_engine.init_strategy(self.strategy_name)
+        self.spread_engine.init_strategy(self.strategy_name)
 
     def start_strategy(self) -> None:
         """"""
-        self.strategy_engine.start_strategy(self.strategy_name)
+        self.spread_engine.start_strategy(self.strategy_name)
 
     def stop_strategy(self) -> None:
         """"""
-        self.strategy_engine.stop_strategy(self.strategy_name)
+        self.spread_engine.stop_strategy(self.strategy_name)
 
     def edit_strategy(self) -> None:
         """"""
         strategy_name: str = self._data["strategy_name"]
 
-        parameters: dict = self.strategy_engine.get_strategy_parameters(
+        parameters: dict = self.spread_engine.get_strategy_parameters(
             strategy_name)
         editor: SettingEditor = SettingEditor(parameters, strategy_name=strategy_name)
         n: int = editor.exec_()
 
         if n == editor.Accepted:
             setting: dict = editor.get_setting()
-            self.strategy_engine.edit_strategy(strategy_name, setting)
+            self.spread_engine.edit_strategy(strategy_name, setting)
 
     def remove_strategy(self) -> None:
         """"""
-        result: bool = self.strategy_engine.remove_strategy(self.strategy_name)
+        result: bool = self.spread_engine.remove_strategy(self.strategy_name)
 
         # Only remove strategy gui manager if it has been removed from engine
         if result:

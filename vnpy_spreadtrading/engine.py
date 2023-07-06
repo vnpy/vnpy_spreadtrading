@@ -246,12 +246,12 @@ class SpreadDataEngine:
 
     def put_data_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_DATA, spread)
+        event: Event = Event(EVENT_SPREAD_DATA, spread.get_item())
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_POS, spread)
+        event: Event = Event(EVENT_SPREAD_POS, spread.get_item())
         self.event_engine.put(event)
 
     def get_leg(self, vt_symbol: str) -> LegData:
@@ -511,7 +511,7 @@ class SpreadAlgoEngine:
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
         """"""
-        event: Event = Event(EVENT_SPREAD_ALGO, algo)
+        event: Event = Event(EVENT_SPREAD_ALGO, algo.get_item())
         self.event_engine.put(event)
 
     def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:

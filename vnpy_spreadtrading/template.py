@@ -8,7 +8,7 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import Direction, Status, Offset, Interval
 from vnpy.trader.utility import virtual, floor_to, ceil_to, round_to
 
-from .base import SpreadData, LegData
+from .base import SpreadData, LegData, AlgoItem
 
 if TYPE_CHECKING:
     from .engine import SpreadAlgoEngine, SpreadStrategyEngine
@@ -67,6 +67,23 @@ class SpreadAlgoTemplate:
         self.orders: Dict[str, OrderData] = {}
 
         self.write_log("算法已启动")
+
+    def get_item(self) -> AlgoItem:
+        """获取数据对象"""
+        item: AlgoItem = AlgoItem(
+            algoid=self.algoid,
+            spread_name=self.spread_name,
+            direction=self.direction,
+            price=self.price,
+            payup=self.payup,
+            volume=self.volume,
+            traded_volume=self.traded_volume,
+            traded_price=self.traded_price,
+            interval=self.interval,
+            count=self.count,
+            status=self.status
+        )
+        return item
 
     def is_active(self) -> bool:
         """判断算法是否处于运行中"""

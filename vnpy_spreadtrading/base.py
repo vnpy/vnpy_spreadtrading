@@ -3,11 +3,12 @@ from typing import Any, Dict, List, Optional, Callable
 from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone_name
+from dataclasses import dataclass
 
 from vnpy.trader.object import (
     HistoryRequest, TickData, PositionData, TradeData, ContractData, BarData
 )
-from vnpy.trader.constant import Direction, Offset, Exchange, Interval
+from vnpy.trader.constant import Direction, Offset, Exchange, Interval, Status
 from vnpy.trader.utility import floor_to, ceil_to, round_to, extract_vt_symbol, ZoneInfo
 from vnpy.trader.database import BaseDatabase, get_database
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
@@ -386,6 +387,21 @@ class SpreadData:
         value = eval(formula)
         return value
 
+    def get_item(self) -> None:
+        """获取数据对象"""
+        item: SpreadItem = SpreadItem(
+            name=self.name,
+            bid_volume=self.bid_volume,
+            bid_price=self.bid_price,
+            ask_price=self.ask_price,
+            ask_volume=self.ask_volume,
+            net_pos=self.net_pos,
+            datetime=self.datetime,
+            price_formula=self.price_formula,
+            trading_formula=self.trading_formula,
+        )
+        return item
+
 
 class BacktestingMode(Enum):
     BAR = 1
@@ -411,7 +427,7 @@ def load_bar_data(
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
         # 初始化K线列表
-        bar_data: List[BarData] = [] 
+        bar_data: List[BarData] = []
 
         # 只有实盘才优先尝试从数据服务查询
         if not backtesting:
@@ -506,3 +522,35 @@ def query_bar_from_datafeed(
     )
     data: List[BarData] = datafeed.query_bar_history(req, output)
     return data
+
+
+@dataclass
+class SpreadItem:
+    """价差数据容器"""
+
+    name: str
+    bid_volume: int
+    bid_price: float
+    ask_price: float
+    ask_volume: int
+    net_pos: int
+    datetime: datetime
+    price_formula: str
+    trading_formula: str
+
+
+@dataclass
+class AlgoItem:
+    """算法数据容器"""
+
+    algoid: str
+    spread_name: str
+    direction: Direction
+    price: float
+    payup: int
+    volume: float
+    traded_volume: float
+    traded_price: float
+    interval: int
+    count: int
+    status: Status

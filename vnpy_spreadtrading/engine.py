@@ -97,6 +97,19 @@ class SpreadEngine(BaseEngine):
         event: Event = Event(EVENT_SPREAD_LOG, log)
         self.event_engine.put(event)
 
+    def update_spread_data(self, spread: SpreadData) -> None:
+        """"""
+        self.algo_engine.update_spread_data(spread)
+        self.strategy_engine.update_spread_data(spread)
+
+    def update_spread_pos(self, spread: SpreadData) -> None:
+        """"""
+        self.strategy_engine.update_spread_pos(spread)
+
+    def update_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
+        """"""
+        self.strategy_engine.update_spread_algo(algo)
+
 
 class SpreadDataEngine:
     """"""
@@ -259,11 +272,15 @@ class SpreadDataEngine:
 
     def put_data_event(self, spread: SpreadData) -> None:
         """"""
+        self.spread_engine.update_spread_data(spread)
+
         event: Event = Event(EVENT_SPREAD_DATA, spread.get_item())
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
         """"""
+        self.spread_engine.update_spread_pos(spread)
+
         event: Event = Event(EVENT_SPREAD_POS, spread.get_item())
         self.event_engine.put(event)
 
@@ -410,13 +427,9 @@ class SpreadAlgoEngine:
         self.event_engine.register(EVENT_ORDER, self.process_order_event)
         self.event_engine.register(EVENT_TRADE, self.process_trade_event)
         self.event_engine.register(EVENT_TIMER, self.process_timer_event)
-        self.event_engine.register(
-            EVENT_SPREAD_DATA, self.process_spread_event
-        )
 
-    def process_spread_event(self, event: Event) -> None:
+    def update_spread_data(self, spread: SpreadData) -> None:
         """"""
-        spread: SpreadData = event.data
         self.spreads[spread.name] = spread
 
     def process_tick_event(self, event: Event) -> None:
@@ -524,6 +537,8 @@ class SpreadAlgoEngine:
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
         """"""
+        self.spread_engine.update_spread_algo(algo)
+
         event: Event = Event(EVENT_SPREAD_ALGO, algo.get_item())
         self.event_engine.put(event)
 
@@ -733,31 +748,25 @@ class SpreadStrategyEngine:
         ee: EventEngine = self.event_engine
         ee.register(EVENT_ORDER, self.process_order_event)
         ee.register(EVENT_TRADE, self.process_trade_event)
-        ee.register(EVENT_SPREAD_DATA, self.process_spread_data_event)
-        ee.register(EVENT_SPREAD_POS, self.process_spread_pos_event)
-        ee.register(EVENT_SPREAD_ALGO, self.process_spread_algo_event)
 
-    def process_spread_data_event(self, event: Event) -> None:
+    def update_spread_data(self, spread: SpreadData) -> None:
         """"""
-        spread: SpreadData = event.data
         strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_data)
 
-    def process_spread_pos_event(self, event: Event) -> None:
+    def update_spread_pos(self, spread: SpreadData) -> None:
         """"""
-        spread: SpreadData = event.data
         strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_pos)
 
-    def process_spread_algo_event(self, event: Event) -> None:
+    def update_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """"""
-        algo: SpreadAlgoTemplate = event.data
         strategy: SpreadStrategyTemplate = self.algo_strategy_map.get(algo.algoid, None)
 
         if strategy:

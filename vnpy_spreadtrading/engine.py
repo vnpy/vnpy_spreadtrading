@@ -59,6 +59,19 @@ class SpreadEngine(BaseEngine):
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
 
+        self.get_all_strategy_class_names = self.strategy_engine.get_all_strategy_class_names
+        self.get_strategy_class_parameters = self.strategy_engine.get_strategy_class_parameters
+        self.init_all_strategies = self.strategy_engine.init_all_strategies
+        self.start_all_strategies = self.strategy_engine.start_all_strategies
+        self.stop_all_strategies = self.strategy_engine.stop_all_strategies
+        self.add_strategy = self.strategy_engine.add_strategy
+        self.init_strategy = self.strategy_engine.init_strategy
+        self.start_strategy = self.strategy_engine.start_strategy
+        self.stop_strategy = self.strategy_engine.stop_strategy
+        self.get_strategy_parameters = self.strategy_engine.get_strategy_parameters
+        self.edit_strategy = self.strategy_engine.edit_strategy
+        self.remove_strategy = self.strategy_engine.remove_strategy
+
     def start(self) -> None:
         """"""
         if self.active:

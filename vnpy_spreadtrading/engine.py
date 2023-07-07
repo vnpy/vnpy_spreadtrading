@@ -29,7 +29,8 @@ from .base import (
     EVENT_SPREAD_DATA, EVENT_SPREAD_POS,
     EVENT_SPREAD_ALGO, EVENT_SPREAD_LOG,
     EVENT_SPREAD_STRATEGY,
-    load_bar_data, load_tick_data
+    load_bar_data, load_tick_data,
+    EngineType
 )
 from .template import SpreadAlgoTemplate, SpreadStrategyTemplate
 from .algo import SpreadTakerAlgo
@@ -605,6 +606,8 @@ class SpreadAlgoEngine:
 class SpreadStrategyEngine:
     """"""
 
+    engine_type: EngineType = EngineType.LIVE
+
     setting_filename: str = "spread_trading_strategy.json"
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
@@ -1047,6 +1050,10 @@ class SpreadStrategyEngine:
             subject: str = "价差策略引擎"
 
         self.main_engine.send_email(subject, msg)
+
+    def get_engine_type(self) -> EngineType:
+        """"""
+        return self.engine_type
 
     def load_bar(
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable

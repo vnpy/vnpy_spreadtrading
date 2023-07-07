@@ -24,12 +24,13 @@ from vnpy.trader.optimize import (
 )
 
 from .template import SpreadStrategyTemplate, SpreadAlgoTemplate
-from .base import SpreadData, BacktestingMode, load_bar_data, load_tick_data
+from .base import SpreadData, BacktestingMode, load_bar_data, load_tick_data, EngineType
 
 
 class BacktestingEngine:
     """"""
 
+    engine_type: EngineType = EngineType.BACKTESTING
     gateway_name: str = "BACKTESTING"
 
     def __init__(self) -> None:
@@ -677,6 +678,12 @@ class BacktestingEngine:
         Send email to default receiver.
         """
         pass
+
+    def get_engine_type(self) -> EngineType:
+        """
+        Return engine type.
+        """
+        return self.engine_type
 
     def put_strategy_event(self, strategy: SpreadStrategyTemplate) -> None:
         """

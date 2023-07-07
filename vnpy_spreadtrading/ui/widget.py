@@ -400,9 +400,9 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setMinimumWidth(300)
 
         self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
-        spreads: List[SpreadData] = self.spread_engine.get_all_spreads()
-        for spread in spreads:
-            self.name_combo.addItem(spread.name)
+        names: List[SpreadData] = self.spread_engine.get_all_spreadnames()
+        for name in names:
+            self.name_combo.addItem(name)
 
         button_remove: QtWidgets.QPushButton = QtWidgets.QPushButton("移除")
         button_remove.clicked.connect(self.remove_spread)
@@ -473,7 +473,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             manager: SpreadStrategyWidget = self.managers[strategy_name]
             manager.update_data(data)
         else:
-            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.strategy_engine, data)
+            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.spread_engine, data)
             self.scroll_layout.insertWidget(0, manager)
             self.managers[strategy_name] = manager
 

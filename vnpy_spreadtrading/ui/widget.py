@@ -473,7 +473,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             manager: SpreadStrategyWidget = self.managers[strategy_name]
             manager.update_data(data)
         else:
-            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.strategy_engine, data)
+            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.spread_engine, data)
             self.scroll_layout.insertWidget(0, manager)
             self.managers[strategy_name] = manager
 

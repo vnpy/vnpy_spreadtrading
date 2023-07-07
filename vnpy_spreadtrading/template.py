@@ -8,7 +8,7 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import Direction, Status, Offset, Interval
 from vnpy.trader.utility import virtual, floor_to, ceil_to, round_to
 
-from .base import SpreadData, LegData
+from .base import SpreadData, LegData, EngineType
 
 if TYPE_CHECKING:
     from .engine import SpreadAlgoEngine, SpreadStrategyEngine
@@ -699,6 +699,10 @@ class SpreadStrategyTemplate:
     def write_log(self, msg: str) -> None:
         """"""
         self.strategy_engine.write_strategy_log(self, msg)
+
+    def get_engine_type(self) -> EngineType:
+        """"""
+        self.strategy_engine.get_engine_type()
 
     def get_spread_tick(self) -> TickData:
         """"""

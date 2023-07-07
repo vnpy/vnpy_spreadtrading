@@ -55,7 +55,7 @@ class SpreadEngine(BaseEngine):
         self.remove_spread = self.data_engine.remove_spread
         self.get_spread = self.data_engine.get_spread
         self.get_all_spreads = self.data_engine.get_all_spreads
-        self.get_all_spreadnames = self.data_engine.get_all_spreadnames
+        self.get_all_spread_names = self.data_engine.get_all_spread_names
 
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
@@ -384,7 +384,7 @@ class SpreadDataEngine:
         """"""
         return list(self.spreads.values())
 
-    def get_all_spreadnames(self) -> List[str]:
+    def get_all_spread_names(self) -> List[str]:
         """"""
         return list(self.spreads.keys())
 

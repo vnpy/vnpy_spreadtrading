@@ -808,7 +808,7 @@ def evaluate(
     statistics: dict = engine.calculate_statistics(output=False)
 
     target_value: float = statistics[target_name]
-    return (str(setting), target_value, statistics)
+    return (setting, target_value, statistics)
 
 
 def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> callable:

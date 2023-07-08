@@ -48,17 +48,29 @@ class SpreadEngine(BaseEngine):
 
         self.active: bool = False
 
+        self.init_data_engine()
+        self.init_algo_engine()
+        self.init_strategy_engine()
+
+    def init_data_engine(self) -> None:
+        """初始化数据引擎"""
         self.data_engine: SpreadDataEngine = SpreadDataEngine(self)
-        self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
-        self.strategy_engine: SpreadStrategyEngine = SpreadStrategyEngine(self)
 
         self.add_spread = self.data_engine.add_spread
         self.remove_spread = self.data_engine.remove_spread
         self.get_spread = self.data_engine.get_spread
         self.get_all_spread_names = self.data_engine.get_all_spread_names
 
+    def init_algo_engine(self) -> None:
+        """初始化算法引擎"""
+        self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
+
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
+
+    def init_strategy_engine(self) -> None:
+        """初始化策略引擎"""
+        self.strategy_engine: SpreadStrategyEngine = SpreadStrategyEngine(self)
 
         self.get_all_strategy_class_names = self.strategy_engine.get_all_strategy_class_names
         self.get_strategy_class_parameters = self.strategy_engine.get_strategy_class_parameters

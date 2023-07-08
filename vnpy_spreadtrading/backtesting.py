@@ -1,5 +1,6 @@
+import traceback
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Callable, Type, Dict, List, Optional
 from functools import partial
 
@@ -24,7 +25,21 @@ from vnpy.trader.optimize import (
 )
 
 from .template import SpreadStrategyTemplate, SpreadAlgoTemplate
-from .base import SpreadData, BacktestingMode, load_bar_data, load_tick_data, EngineType
+from .base import (
+    SpreadData,
+    BacktestingMode,
+    load_bar_data,
+    load_tick_data,
+    EngineType
+)
+
+
+INTERVAL_DELTA_MAP: Dict[Interval, timedelta] = {
+    Interval.TICK: timedelta(milliseconds=1),
+    Interval.MINUTE: timedelta(minutes=1),
+    Interval.HOUR: timedelta(hours=1),
+    Interval.DAILY: timedelta(days=1),
+}
 
 
 class BacktestingEngine:
@@ -167,20 +182,6 @@ class BacktestingEngine:
             func = self.new_tick
 
         self.strategy.on_init()
-
-        # Use the first [days] of history data for initializing strategy
-        day_count: int = 0
-        ix: int = 0
-
-        for ix, data in enumerate(self.history_data):
-            if self.datetime and data.datetime.day != self.datetime.day:
-                day_count += 1
-                if day_count >= self.days:
-                    break
-
-            self.datetime = data.datetime
-            self.callback(data)
-
         self.strategy.inited = True
         self.output("策略初始化完成")
 
@@ -188,9 +189,13 @@ class BacktestingEngine:
         self.strategy.trading = True
         self.output("开始回放历史数据")
 
-        # Use the rest of history data for running backtesting
-        for data in self.history_data[ix:]:
-            func(data)
+        for data in self.history_data:
+            try:
+                func(data)
+            except Exception:
+                self.output("触发异常，回测终止")
+                self.output(traceback.format_exc())
+                return
 
         self.output("历史数据回放结束")
 
@@ -591,13 +596,42 @@ class BacktestingEngine:
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable
     ) -> None:
         """"""
-        self.days = days
         self.callback = callback
+
+        init_end = self.start - INTERVAL_DELTA_MAP[interval]
+        init_start = self.start - timedelta(days=days)
+
+        bars: List[BarData] = load_bar_data(
+            spread=self.spread,
+            interval=self.interval,
+            start=init_start,
+            end=init_end,
+            pricetick=self.pricetick,
+            backtesting=True
+        )
+
+        for bar in bars:
+            callback(bar)
+
+        return bars
 
     def load_tick(self, spread: SpreadData, days: int, callback: Callable) -> None:
         """"""
         self.days = days
-        self.callback = callback
+
+        init_end = self.start - INTERVAL_DELTA_MAP[Interval.TICK]
+        init_start = self.start - timedelta(days=days)
+
+        ticks: List[TickData] = load_tick_data(
+            self.spread,
+            init_start,
+            init_end
+        )
+
+        for tick in ticks:
+            callback(callback)
+
+        return ticks
 
     def start_algo(
         self,

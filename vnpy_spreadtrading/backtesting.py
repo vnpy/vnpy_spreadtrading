@@ -59,6 +59,8 @@ class BacktestingEngine:
         self.size: float = 1
         self.pricetick: float = 0
         self.capital: int = 1_000_000
+        self.risk_free: float = 0
+        self.annual_days: int = 240
         self.mode: BacktestingMode = BacktestingMode.BAR
 
         self.strategy_class: Type[SpreadStrategyTemplate] = None
@@ -119,6 +121,8 @@ class BacktestingEngine:
         size: float,
         pricetick: float,
         capital: int = 0,
+        risk_free: float = 0,
+        annual_days: int = 240,
         end: datetime = None,
         mode: BacktestingMode = BacktestingMode.BAR
     ) -> None:
@@ -131,6 +135,8 @@ class BacktestingEngine:
         self.pricetick = pricetick
         self.start = start
         self.capital = capital
+        self.risk_free = risk_free
+        self.annual_days = annual_days
         self.end = end
         self.mode = mode
 
@@ -328,12 +334,13 @@ class BacktestingEngine:
             daily_trade_count: int = total_trade_count / total_days
 
             total_return: float = (end_balance / self.capital - 1) * 100
-            annual_return: float = total_return / total_days * 240
+            annual_return: float = total_return / total_days * self.annual_days
             daily_return: float = df["return"].mean() * 100
             return_std: float = df["return"].std() * 100
 
             if return_std:
-                sharpe_ratio: float = daily_return / return_std * np.sqrt(240)
+                daily_risk_free: float = self.risk_free / np.sqrt(self.annual_days)
+                sharpe_ratio: float = (daily_return - daily_risk_free) / return_std * np.sqrt(self.annual_days)
             else:
                 sharpe_ratio: float = 0
 

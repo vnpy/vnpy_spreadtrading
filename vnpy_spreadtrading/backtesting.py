@@ -339,7 +339,7 @@ class BacktestingEngine:
             return_std: float = df["return"].std() * 100
 
             if return_std:
-                daily_risk_free: float = self.risk_free / np.sqrt(self.annual_days)
+                daily_risk_free: float = self.risk_free / self.annual_days
                 sharpe_ratio: float = (daily_return - daily_risk_free) / return_std * np.sqrt(self.annual_days)
             else:
                 sharpe_ratio: float = 0

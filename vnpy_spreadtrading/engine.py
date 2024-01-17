@@ -7,6 +7,7 @@ from collections import defaultdict
 from copy import copy
 from pathlib import Path
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, Future
 
 from vnpy.event import EventEngine, Event
 from vnpy.trader.engine import BaseEngine, MainEngine
@@ -667,6 +668,8 @@ class SpreadStrategyEngine:
         self.algo_strategy_map: Dict[str, SpreadStrategyTemplate] = {}
         self.spread_strategy_map: Dict[str, List[SpreadStrategyTemplate]] = defaultdict(list)
 
+        self.init_executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=1)
+
         self.vt_tradeids: set = set()
 
         self.load_strategy_class()
@@ -885,7 +888,11 @@ class SpreadStrategyEngine:
 
         return True
 
-    def init_strategy(self, strategy_name: str) -> None:
+    def init_strategy(self, strategy_name: str) -> Future:
+        """"""
+        return self.init_executor.submit(self._init_strategy, strategy_name)
+
+    def _init_strategy(self, strategy_name: str) -> None:
         """"""
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
 

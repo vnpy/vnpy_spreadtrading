@@ -24,6 +24,7 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import (
     Direction, Offset, OrderType, Interval
 )
+from vnpy.trader.database import DB_TZ
 
 from .base import (
     LegData, SpreadData,
@@ -1100,7 +1101,7 @@ class SpreadStrategyEngine:
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable
     ) -> None:
         """"""
-        end: datetime = datetime.now()
+        end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
         bars: List[BarData] = load_bar_data(spread, interval, start, end, output=self.write_log)
@@ -1110,7 +1111,7 @@ class SpreadStrategyEngine:
 
     def load_tick(self, spread: SpreadData, days: int, callback: Callable) -> None:
         """"""
-        end: datetime = datetime.now()
+        end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
         ticks: List[TickData] = load_tick_data(spread, start, end)

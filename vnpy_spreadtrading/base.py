@@ -387,7 +387,7 @@ class SpreadData:
         value = eval(formula)
         return value
 
-    def get_item(self) -> None:
+    def get_item(self) -> "SpreadItem":
         """获取数据对象"""
         item: SpreadItem = SpreadItem(
             name=self.name,

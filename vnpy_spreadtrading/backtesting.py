@@ -110,6 +110,7 @@ class BacktestingEngine:
 
         self.logs.clear()
         self.daily_results.clear()
+        self.spread.net_pos = 0
 
     def set_parameters(
         self,

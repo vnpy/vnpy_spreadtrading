@@ -100,6 +100,7 @@ class BacktestingEngine:
         self.tick = None
         self.bar = None
         self.datetime = None
+        self.spread.net_pos = 0
 
         self.algo_count = 0
         self.algos.clear()
@@ -110,7 +111,6 @@ class BacktestingEngine:
 
         self.logs.clear()
         self.daily_results.clear()
-        self.spread.net_pos = 0
 
     def set_parameters(
         self,

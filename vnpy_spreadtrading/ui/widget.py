@@ -223,7 +223,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
     def init_ui(self) -> None:
         """"""
         self.setWindowTitle("启动算法")
-        self.setFrameShape(self.Box)
+        self.setFrameShape(self.Shape.Box)
         self.setLineWidth(1)
 
         self.name_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
@@ -373,7 +373,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         editor: SettingEditor = SettingEditor(parameters, class_name=class_name)
         n: int = editor.exec_()
 
-        if n == editor.Accepted:
+        if n == editor.DialogCode.Accepted:
             setting: dict = editor.get_setting()
             spread_name: str = setting.pop("spread_name")
             strategy_name: str = setting.pop("strategy_name")
@@ -507,7 +507,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
     def init_ui(self) -> None:
         """"""
         self.setFixedHeight(300)
-        self.setFrameShape(self.Box)
+        self.setFrameShape(self.Shape.Box)
         self.setLineWidth(1)
 
         init_button: QtWidgets.QPushButton = QtWidgets.QPushButton("初始化")
@@ -534,7 +534,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
             f"{strategy_name}  -  {spread_name}  ({class_name} by {author})"
         )
         label: QtWidgets.QLabel = QtWidgets.QLabel(label_text)
-        label.setAlignment(QtCore.Qt.AlignCenter)
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.parameters_monitor: StrategyDataMonitor = StrategyDataMonitor(self._data["parameters"])
         self.variables_monitor: StrategyDataMonitor = StrategyDataMonitor(self._data["variables"])
@@ -581,7 +581,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
         editor: SettingEditor = SettingEditor(parameters, strategy_name=strategy_name)
         n: int = editor.exec_()
 
-        if n == editor.Accepted:
+        if n == editor.DialogCode.Accepted:
             setting: dict = editor.get_setting()
             self.spread_engine.edit_strategy(strategy_name, setting)
 
@@ -616,16 +616,16 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
 
         self.setRowCount(1)
         self.verticalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.Stretch
+            QtWidgets.QHeaderView.ResizeMode.Stretch
         )
         self.verticalHeader().setVisible(False)
-        self.setEditTriggers(self.NoEditTriggers)
+        self.setEditTriggers(self.EditTrigger.NoEditTriggers)
 
         for column, name in enumerate(self._data.keys()):
             value = self._data[name]
 
             cell: QtWidgets.QTableWidgetItem = QtWidgets.QTableWidgetItem(str(value))
-            cell.setTextAlignment(QtCore.Qt.AlignCenter)
+            cell.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
             self.setItem(0, column, cell)
             self.cells[name] = cell

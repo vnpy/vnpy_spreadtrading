@@ -133,7 +133,7 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
     """
     Monitor for log data.
     """
-    signal: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
+    signal: QtCore.Signal = QtCore.Signal(Event)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
@@ -422,7 +422,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
 class SpreadStrategyMonitor(QtWidgets.QWidget):
     """"""
 
-    signal_strategy: QtCore.pyqtSignal = QtCore.pyqtSignal(Event)
+    signal_strategy: QtCore.Signal = QtCore.Signal(Event)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         super().__init__()

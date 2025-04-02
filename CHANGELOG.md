@@ -1,3 +1,7 @@
+# 1.2.6版本
+
+1. 替换所有的Qt信号pyqtSignal为Signal
+
 # 1.2.5版本
 
 1. 调整适配PySide6新版本

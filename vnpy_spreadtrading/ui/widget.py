@@ -877,8 +877,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
 
     def check_formula(self, formula: str) -> bool:
         """"""
-        data: dict = {variable: 1 for variable in "ABCDE"}
-        locals().update(data)
+        A = B = C = D = E = 1
         try:
             result: Any = eval(formula)
             return True

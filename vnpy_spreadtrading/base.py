@@ -383,7 +383,16 @@ class SpreadData:
 
     def parse_formula(self, formula: str, data: Dict[str, float]) -> Any:
         """"""
-        locals().update(data)
+        if "A" in data:
+            A = data["A"]
+        if "B" in data:
+            B = data["B"]
+        if "C" in data:
+            C = data["C"]
+        if "D" in data:
+            D = data["D"]
+        if "E" in data:
+            E = data["E"]
         value = eval(formula)
         return value
 

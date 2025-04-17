@@ -2,7 +2,7 @@
 Widget for spread trading.
 """
 
-from typing import Dict, List, Any
+from typing import Any
 
 from vnpy.event import EventEngine, Event
 from vnpy.trader.engine import MainEngine
@@ -400,7 +400,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setMinimumWidth(300)
 
         self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
-        names: List[SpreadData] = self.spread_engine.get_all_spread_names()
+        names: list[SpreadData] = self.spread_engine.get_all_spread_names()
         self.name_combo.addItems(names)
 
         button_remove: QtWidgets.QPushButton = QtWidgets.QPushButton("移除")
@@ -432,7 +432,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
 
         self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
 
-        self.managers: Dict[str, SpreadStrategyWidget] = {}
+        self.managers: dict[str, SpreadStrategyWidget] = {}
 
         self.init_ui()
         self.register_event()
@@ -646,7 +646,7 @@ class SettingEditor(QtWidgets.QDialog):
         self, parameters: dict, strategy_name: str = "", class_name: str = ""
     ) -> None:
         """"""
-        super(SettingEditor, self).__init__()
+        super().__init__()
 
         self.parameters: dict = parameters
         self.strategy_name: str = strategy_name
@@ -703,7 +703,7 @@ class SettingEditor(QtWidgets.QDialog):
             edit, type_ = tp
             value_text = edit.text()
 
-            if type_ == bool:
+            if type_ is bool:
                 if value_text == "True":
                     value: bool = True
                 else:

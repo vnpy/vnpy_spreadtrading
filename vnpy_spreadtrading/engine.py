@@ -2,7 +2,8 @@ import traceback
 import importlib
 import os
 from types import ModuleType
-from typing import List, Dict, Set, Callable, Any, Optional
+from typing import Any
+from collections.abc import Callable
 from collections import defaultdict
 from copy import copy
 from pathlib import Path
@@ -139,12 +140,12 @@ class SpreadDataEngine:
 
         self.write_log = spread_engine.write_log
 
-        self.legs: Dict[str, LegData] = {}          # vt_symbol: leg
-        self.spreads: Dict[str, SpreadData] = {}    # name: spread
-        self.symbol_spread_map: Dict[str, List[SpreadData]] = defaultdict(list)
-        self.order_spread_map: Dict[str, SpreadData] = {}
+        self.legs: dict[str, LegData] = {}          # vt_symbol: leg
+        self.spreads: dict[str, SpreadData] = {}    # name: spread
+        self.symbol_spread_map: dict[str, list[SpreadData]] = defaultdict(list)
+        self.order_spread_map: dict[str, SpreadData] = {}
 
-        self.tradeid_history: Set[str] = set()
+        self.tradeid_history: set[str] = set()
 
     def start(self) -> None:
         """"""
@@ -308,7 +309,7 @@ class SpreadDataEngine:
             self.legs[vt_symbol] = leg
 
             # Subscribe market data
-            contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+            contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
             if contract:
                 leg.update_contract(contract)
 
@@ -319,7 +320,7 @@ class SpreadDataEngine:
                 self.main_engine.subscribe(req, contract.gateway_name)
 
             # Initialize leg position
-            positions: List[PositionData] = self.main_engine.get_all_positions()
+            positions: list[PositionData] = self.main_engine.get_all_positions()
             for position in positions:
                 if position.vt_symbol == vt_symbol:
                     leg.update_position(position)
@@ -329,7 +330,7 @@ class SpreadDataEngine:
     def add_spread(
         self,
         name: str,
-        leg_settings: List[Dict],
+        leg_settings: list[dict],
         price_formula: str,
         active_symbol: str,
         min_volume: float,
@@ -337,13 +338,13 @@ class SpreadDataEngine:
     ) -> None:
         """"""
         if name in self.spreads:
-            self.write_log("价差创建失败，名称重复：{}".format(name))
+            self.write_log(f"价差创建失败，名称重复：{name}")
             return
 
-        legs: List[LegData] = []
-        variable_symbols: Dict[str, str] = {}
-        variable_directions: Dict[str, int] = {}
-        trading_multipliers: Dict[str, int] = {}
+        legs: list[LegData] = []
+        variable_symbols: dict[str, str] = {}
+        variable_directions: dict[str, int] = {}
+        trading_multipliers: dict[str, int] = {}
 
         for leg_setting in leg_settings:
             vt_symbol: str = leg_setting["vt_symbol"]
@@ -373,7 +374,7 @@ class SpreadDataEngine:
         if save:
             self.save_setting()
 
-        self.write_log("价差创建成功：{}".format(name))
+        self.write_log(f"价差创建成功：{name}")
         self.put_data_event(spread)
 
     def remove_spread(self, name: str) -> None:
@@ -387,14 +388,14 @@ class SpreadDataEngine:
             self.symbol_spread_map[leg.vt_symbol].remove(spread)
 
         self.save_setting()
-        self.write_log("价差移除成功：{}，重启后生效".format(name))
+        self.write_log(f"价差移除成功：{name}，重启后生效")
 
-    def get_spread(self, name: str) -> Optional[SpreadData]:
+    def get_spread(self, name: str) -> SpreadData | None:
         """"""
         spread: SpreadData = self.spreads.get(name, None)
         return spread
 
-    def get_all_spread_names(self) -> List[str]:
+    def get_all_spread_names(self) -> list[str]:
         """"""
         return list(self.spreads.keys())
 
@@ -416,11 +417,11 @@ class SpreadAlgoEngine:
 
         self.write_log = spread_engine.write_log
 
-        self.spreads: Dict[str, SpreadData] = {}
-        self.algos: Dict[str, SpreadAlgoTemplate] = {}
+        self.spreads: dict[str, SpreadData] = {}
+        self.algos: dict[str, SpreadAlgoTemplate] = {}
 
-        self.order_algo_map: Dict[str, SpreadAlgoTemplate] = {}
-        self.symbol_algo_map: Dict[str, List[SpreadAlgoTemplate]] = defaultdict(list)
+        self.order_algo_map: dict[str, SpreadAlgoTemplate] = {}
+        self.symbol_algo_map: dict[str, list[SpreadAlgoTemplate]] = defaultdict(list)
 
         self.algo_count: int = 0
         self.vt_tradeids: set = set()
@@ -450,11 +451,11 @@ class SpreadAlgoEngine:
     def process_tick_event(self, event: Event) -> None:
         """"""
         tick: TickData = event.data
-        algos: List[SpreadAlgoTemplate] = self.symbol_algo_map[tick.vt_symbol]
+        algos: list[SpreadAlgoTemplate] = self.symbol_algo_map[tick.vt_symbol]
         if not algos:
             return
 
-        buf: List[SpreadAlgoTemplate] = copy(algos)
+        buf: list[SpreadAlgoTemplate] = copy(algos)
         for algo in buf:
             if not algo.is_active():
                 algos.remove(algo)
@@ -484,7 +485,7 @@ class SpreadAlgoEngine:
 
     def process_timer_event(self, event: Event) -> None:
         """"""
-        buf: List[SpreadAlgoTemplate] = list(self.algos.values())
+        buf: list[SpreadAlgoTemplate] = list(self.algos.values())
 
         for algo in buf:
             if not algo.is_active():
@@ -506,7 +507,7 @@ class SpreadAlgoEngine:
         # Find spread object
         spread: SpreadData = self.spreads.get(spread_name, None)
         if not spread:
-            self.write_log("创建价差算法失败，找不到价差：{}".format(spread_name))
+            self.write_log(f"创建价差算法失败，找不到价差：{spread_name}")
             return ""
 
         # Generate algoid str
@@ -545,7 +546,7 @@ class SpreadAlgoEngine:
         """"""
         algo: SpreadAlgoTemplate = self.algos.get(algoid, None)
         if not algo:
-            self.write_log("停止价差算法失败，找不到算法：{}".format(algoid))
+            self.write_log(f"停止价差算法失败，找不到算法：{algoid}")
             return
 
         algo.stop()
@@ -571,10 +572,10 @@ class SpreadAlgoEngine:
         direction: Direction,
         lock: bool,
         fak: bool
-    ) -> List[str]:
+    ) -> list[str]:
         """"""
         # 创建原始委托请求
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         if fak:
             order_type: OrderType = OrderType.FAK
@@ -596,7 +597,7 @@ class SpreadAlgoEngine:
         net: bool = not lock
 
         # 执行委托转换
-        req_list: List[OrderRequest] = self.main_engine.convert_order_request(
+        req_list: list[OrderRequest] = self.main_engine.convert_order_request(
             original_req,
             contract.gateway_name,
             lock,
@@ -628,19 +629,19 @@ class SpreadAlgoEngine:
 
     def cancel_order(self, algo: SpreadAlgoTemplate, vt_orderid: str) -> None:
         """"""
-        order: Optional[OrderData] = self.main_engine.get_order(vt_orderid)
+        order: OrderData | None = self.main_engine.get_order(vt_orderid)
         if not order:
-            self.write_algo_log(algo, "撤单失败，找不到委托{}".format(vt_orderid))
+            self.write_algo_log(algo, f"撤单失败，找不到委托{vt_orderid}")
             return
 
         req: CancelRequest = order.create_cancel_request()
         self.main_engine.cancel_order(req, order.gateway_name)
 
-    def get_tick(self, vt_symbol: str) -> Optional[TickData]:
+    def get_tick(self, vt_symbol: str) -> TickData | None:
         """"""
         return self.main_engine.get_tick(vt_symbol)
 
-    def get_contract(self, vt_symbol: str) -> Optional[ContractData]:
+    def get_contract(self, vt_symbol: str) -> ContractData | None:
         """"""
         return self.main_engine.get_contract(vt_symbol)
 
@@ -663,11 +664,11 @@ class SpreadStrategyEngine:
         self.strategy_setting: dict = {}
 
         self.classes: dict = {}
-        self.strategies: Dict[str, SpreadStrategyTemplate] = {}
+        self.strategies: dict[str, SpreadStrategyTemplate] = {}
 
-        self.order_strategy_map: Dict[str, SpreadStrategyTemplate] = {}
-        self.algo_strategy_map: Dict[str, SpreadStrategyTemplate] = {}
-        self.spread_strategy_map: Dict[str, List[SpreadStrategyTemplate]] = defaultdict(list)
+        self.order_strategy_map: dict[str, SpreadStrategyTemplate] = {}
+        self.algo_strategy_map: dict[str, SpreadStrategyTemplate] = {}
+        self.spread_strategy_map: dict[str, list[SpreadStrategyTemplate]] = defaultdict(list)
 
         self.init_executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=1)
 
@@ -700,7 +701,7 @@ class SpreadStrategyEngine:
         """
         Load strategy class from certain folder.
         """
-        for dirpath, dirnames, filenames in os.walk(str(path)):
+        for _dirpath, _dirnames, filenames in os.walk(str(path)):
             for filename in filenames:
                 if filename.split(".")[-1] in ("py", "pyd", "so"):
                     strategy_module_name = ".".join([module_name, filename.split(".")[0]])
@@ -770,7 +771,7 @@ class SpreadStrategyEngine:
 
     def update_spread_data(self, spread: SpreadData) -> None:
         """"""
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
@@ -778,7 +779,7 @@ class SpreadStrategyEngine:
 
     def update_spread_pos(self, spread: SpreadData) -> None:
         """"""
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
+        strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
             if strategy.inited:
@@ -841,7 +842,7 @@ class SpreadStrategyEngine:
             self.write_log(f"创建策略失败，找不到策略类{class_name}")
             return
 
-        spread: Optional[SpreadData] = self.spread_engine.get_spread(spread_name)
+        spread: SpreadData | None = self.spread_engine.get_spread(spread_name)
         if not spread:
             self.write_log(f"创建策略失败，找不到价差{spread_name}")
             return
@@ -850,7 +851,7 @@ class SpreadStrategyEngine:
         self.strategies[strategy_name] = strategy
 
         # Add vt_symbol to strategy map.
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[spread_name]
+        strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread_name]
         strategies.append(strategy)
 
         # Update to setting file.
@@ -881,7 +882,7 @@ class SpreadStrategyEngine:
         self.remove_strategy_setting(strategy_name)
 
         # Remove from symbol strategy map
-        strategies: List[SpreadStrategyTemplate] = self.spread_strategy_map[strategy.spread_name]
+        strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[strategy.spread_name]
         strategies.remove(strategy)
 
         # Remove from strategies
@@ -1017,8 +1018,8 @@ class SpreadStrategyEngine:
         direction: Direction,
         offset: Offset,
         lock: bool
-    ) -> List[str]:
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+    ) -> list[str]:
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         original_req: OrderRequest = OrderRequest(
             symbol=contract.symbol,
@@ -1032,7 +1033,7 @@ class SpreadStrategyEngine:
         )
 
         # Convert with offset converter
-        req_list: List[OrderRequest] = self.main_engine.convert_order_request(
+        req_list: list[OrderRequest] = self.main_engine.convert_order_request(
             original_req,
             contract.gateway_name,
             lock
@@ -1060,10 +1061,10 @@ class SpreadStrategyEngine:
 
     def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str) -> None:
         """"""
-        order: Optional[OrderData] = self.main_engine.get_order(vt_orderid)
+        order: OrderData | None = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_strategy_log(
-                strategy, "撤单失败，找不到委托{}".format(vt_orderid))
+                strategy, f"撤单失败，找不到委托{vt_orderid}")
             return
 
         req: CancelRequest = order.create_cancel_request()
@@ -1104,7 +1105,7 @@ class SpreadStrategyEngine:
         end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
-        bars: List[BarData] = load_bar_data(spread, interval, start, end, output=self.write_log)
+        bars: list[BarData] = load_bar_data(spread, interval, start, end, output=self.write_log)
 
         for bar in bars:
             callback(bar)
@@ -1114,7 +1115,7 @@ class SpreadStrategyEngine:
         end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
-        ticks: List[TickData] = load_tick_data(spread, start, end)
+        ticks: list[TickData] = load_tick_data(spread, start, end)
 
         for tick in ticks:
             callback(tick)

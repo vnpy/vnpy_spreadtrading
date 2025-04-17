@@ -1,7 +1,7 @@
 import traceback
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import Callable, Type, Dict, List, Optional
+from collections.abc import Callable
 from functools import partial
 
 import numpy as np
@@ -34,7 +34,7 @@ from .base import (
 )
 
 
-INTERVAL_DELTA_MAP: Dict[Interval, timedelta] = {
+INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
     Interval.TICK: timedelta(milliseconds=1),
     Interval.MINUTE: timedelta(minutes=1),
     Interval.HOUR: timedelta(hours=1),
@@ -63,7 +63,7 @@ class BacktestingEngine:
         self.annual_days: int = 240
         self.mode: BacktestingMode = BacktestingMode.BAR
 
-        self.strategy_class: Type[SpreadStrategyTemplate] = None
+        self.strategy_class: type[SpreadStrategyTemplate] = None
         self.strategy: SpreadStrategyTemplate = None
         self.tick: TickData = None
         self.bar: BarData = None
@@ -75,15 +75,15 @@ class BacktestingEngine:
         self.history_data: list = []
 
         self.algo_count: int = 0
-        self.algos: Dict[str, SpreadAlgoTemplate] = {}
-        self.active_algos: Dict[str, SpreadAlgoTemplate] = {}
+        self.algos: dict[str, SpreadAlgoTemplate] = {}
+        self.active_algos: dict[str, SpreadAlgoTemplate] = {}
 
         self.trade_count: int = 0
-        self.trades: Dict[str, TradeData] = {}
+        self.trades: dict[str, TradeData] = {}
 
         self.logs: list = []
 
-        self.daily_results: Dict[date, DailyResult] = {}
+        self.daily_results: dict[date, DailyResult] = {}
         self.daily_df: DataFrame = None
 
     def output(self, msg) -> None:
@@ -516,7 +516,7 @@ class BacktestingEngine:
         """"""
         d: date = self.datetime.date()
 
-        daily_result: Optional[DailyResult] = self.daily_results.get(d, None)
+        daily_result: DailyResult | None = self.daily_results.get(d, None)
         if daily_result:
             daily_result.close_price = price
         else:
@@ -624,7 +624,7 @@ class BacktestingEngine:
         init_end = self.start - INTERVAL_DELTA_MAP[interval]
         init_start = self.start - timedelta(days=days)
 
-        bars: List[BarData] = load_bar_data(
+        bars: list[BarData] = load_bar_data(
             spread=self.spread,
             interval=self.interval,
             start=init_start,
@@ -645,13 +645,13 @@ class BacktestingEngine:
         init_end = self.start - INTERVAL_DELTA_MAP[Interval.TICK]
         init_start = self.start - timedelta(days=days)
 
-        ticks: List[TickData] = load_tick_data(
+        ticks: list[TickData] = load_tick_data(
             self.spread,
             init_start,
             init_end
         )
 
-        for tick in ticks:
+        for _tick in ticks:
             callback(callback)
 
         return ticks
@@ -761,7 +761,7 @@ class DailyResult:
         self.close_price: float = close_price
         self.pre_close: float = 0
 
-        self.trades: List[TradeData] = []
+        self.trades: list[TradeData] = []
         self.trade_count: int = 0
 
         self.start_pos = 0

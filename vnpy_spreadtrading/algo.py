@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from vnpy.trader.constant import Direction
 from vnpy.trader.object import TickData, OrderData, TradeData, ContractData
@@ -99,7 +99,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
             spread_order_volume: float = self.spread.ask_volume
             spread_order_volume = min(spread_order_volume, spread_volume_left)
         else:
-            spread_order_volume: float = -self.spread.bid_volume
+            spread_order_volume = -self.spread.bid_volume
             spread_order_volume = max(spread_order_volume, spread_volume_left)
 
         # Calculate active leg order volume
@@ -118,9 +118,9 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
         # Limit order volume to total volume left of the active leg
         if active_volume_left > 0:
-            leg_order_volume: float = min(leg_order_volume, active_volume_left)
+            leg_order_volume = min(leg_order_volume, active_volume_left)
         else:
-            leg_order_volume: float = max(leg_order_volume, active_volume_left)
+            leg_order_volume= max(leg_order_volume, active_volume_left)
 
         # Send active leg order
         self.send_leg_order(
@@ -135,7 +135,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         # Calcualte spread volume to hedge
         active_leg: LegData = self.spread.active_leg
         active_traded: float = self.leg_traded[active_leg.vt_symbol]
-        active_traded: float = round_to(active_traded, self.spread.min_volume)
+        active_traded = round_to(active_traded, self.spread.min_volume)
 
         hedge_volume: float = self.spread.calculate_spread_volume(
             active_leg.vt_symbol,
@@ -145,7 +145,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         # Calculate passive leg target volume and do hedge
         for leg in self.spread.passive_legs:
             passive_traded: float = self.leg_traded[leg.vt_symbol]
-            passive_traded: float = round_to(passive_traded, self.spread.min_volume)
+            passive_traded = round_to(passive_traded, self.spread.min_volume)
 
             passive_target: float = self.spread.calculate_leg_volume(
                 leg.vt_symbol,
@@ -159,12 +159,13 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
     def send_leg_order(self, vt_symbol: str, leg_volume: float) -> None:
         """"""
         leg: LegData = self.spread.legs[vt_symbol]
-        leg_tick: Optional[TickData] = self.get_tick(vt_symbol)
-        leg_contract: Optional[ContractData] = self.get_contract(vt_symbol)
+        leg_tick: TickData | None = self.get_tick(vt_symbol)
+        leg_contract: ContractData | None = self.get_contract(vt_symbol)
 
-        if leg_volume > 0:
-            price: float = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup
-            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.LONG)
-        elif leg_volume < 0:
-            price: float = leg_tick.bid_price_1 - leg_contract.pricetick * self.payup
-            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.SHORT)
+        if leg_tick and leg_contract:
+            if leg_volume > 0:
+                price: float = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup
+                self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.LONG)
+            elif leg_volume < 0:
+                price = leg_tick.bid_price_1 - leg_contract.pricetick * self.payup
+                self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.SHORT)

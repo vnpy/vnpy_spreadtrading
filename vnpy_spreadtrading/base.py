@@ -192,7 +192,7 @@ class SpreadData:
         self.short_pos: int = 0
         self.net_pos: float = 0
 
-        self.datetime: datetime = datetime(1970, 1, 1)
+        self.datetime: datetime = datetime.now(LOCAL_TZ)
 
         self.leg_pos: defaultdict = defaultdict(int)
 

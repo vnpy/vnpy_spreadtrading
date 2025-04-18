@@ -3,7 +3,6 @@ from datetime import datetime
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
     SpreadAlgoTemplate,
-    SpreadData,
     OrderData,
     TradeData
 )
@@ -49,34 +48,22 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         "cover_algoid",
     ]
 
-    def __init__(
-        self,
-        strategy_engine,
-        strategy_name: str,
-        spread: SpreadData,
-        setting: dict
-    ):
-        """"""
-        super().__init__(
-            strategy_engine, strategy_name, spread, setting
-        )
-
-        self.start_t = datetime.strptime(self.start_time, "%H:%M:%S").time()
-        self.end_t = datetime.strptime(self.end_time, "%H:%M:%S").time()
-
-    def on_init(self):
+    def on_init(self) -> None:
         """
         Callback when strategy is inited.
         """
         self.write_log("策略初始化")
 
-    def on_start(self):
+        self.start_t = datetime.strptime(self.start_time, "%H:%M:%S").time()
+        self.end_t = datetime.strptime(self.end_time, "%H:%M:%S").time()
+
+    def on_start(self) -> None:
         """
         Callback when strategy is started.
         """
         self.write_log("策略启动")
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         """
         Callback when strategy is stopped.
         """
@@ -89,7 +76,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         self.cover_algoid = ""
         self.put_event()
 
-    def on_spread_data(self):
+    def on_spread_data(self) -> None:
         """
         Callback when spread price is updated.
         """
@@ -141,14 +128,14 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
         self.put_event()
 
-    def on_spread_pos(self):
+    def on_spread_pos(self) -> None:
         """
         Callback when spread position is updated.
         """
         self.spread_pos = self.get_spread_pos()
         self.put_event()
 
-    def on_spread_algo(self, algo: SpreadAlgoTemplate):
+    def on_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """
         Callback when algo status is updated.
         """
@@ -164,19 +151,19 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
         self.put_event()
 
-    def on_order(self, order: OrderData):
+    def on_order(self, order: OrderData) -> None:
         """
         Callback when order status is updated.
         """
         pass
 
-    def on_trade(self, trade: TradeData):
+    def on_trade(self, trade: TradeData) -> None:
         """
         Callback when new trade data is received.
         """
         pass
 
-    def stop_open_algos(self):
+    def stop_open_algos(self) -> None:
         """"""
         if self.buy_algoid:
             self.stop_algo(self.buy_algoid)
@@ -184,7 +171,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         if self.short_algoid:
             self.stop_algo(self.short_algoid)
 
-    def stop_close_algos(self):
+    def stop_close_algos(self) -> None:
         """"""
         if self.sell_algoid:
             self.stop_algo(self.sell_algoid)

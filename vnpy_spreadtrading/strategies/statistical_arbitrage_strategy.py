@@ -2,7 +2,6 @@ from vnpy.trader.utility import BarGenerator, ArrayManager
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
     SpreadAlgoTemplate,
-    SpreadData,
     OrderData,
     TradeData,
     TickData,
@@ -40,36 +39,24 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
         "boll_mid"
     ]
 
-    def __init__(
-        self,
-        strategy_engine,
-        strategy_name: str,
-        spread: SpreadData,
-        setting: dict
-    ):
-        """"""
-        super().__init__(
-            strategy_engine, strategy_name, spread, setting
-        )
-
-        self.bg = BarGenerator(self.on_spread_bar)
-        self.am = ArrayManager()
-
-    def on_init(self):
+    def on_init(self) -> None:
         """
         Callback when strategy is inited.
         """
         self.write_log("策略初始化")
 
+        self.bg = BarGenerator(self.on_spread_bar)
+        self.am = ArrayManager()
+
         self.load_bar(10)
 
-    def on_start(self):
+    def on_start(self) -> None:
         """
         Callback when strategy is started.
         """
         self.write_log("策略启动")
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         """
         Callback when strategy is stopped.
         """
@@ -77,20 +64,20 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
         self.put_event()
 
-    def on_spread_data(self):
+    def on_spread_data(self) -> None:
         """
         Callback when spread price is updated.
         """
         tick = self.get_spread_tick()
         self.on_spread_tick(tick)
 
-    def on_spread_tick(self, tick: TickData):
+    def on_spread_tick(self, tick: TickData) -> None:
         """
         Callback when new spread tick data is generated.
         """
         self.bg.update_tick(tick)
 
-    def on_spread_bar(self, bar: BarData):
+    def on_spread_bar(self, bar: BarData) -> None:
         """
         Callback when spread bar data is generated.
         """
@@ -138,43 +125,27 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
         self.put_event()
 
-    def on_spread_pos(self):
+    def on_spread_pos(self) -> None:
         """
         Callback when spread position is updated.
         """
         self.spread_pos = self.get_spread_pos()
         self.put_event()
 
-    def on_spread_algo(self, algo: SpreadAlgoTemplate):
+    def on_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """
         Callback when algo status is updated.
         """
         pass
 
-    def on_order(self, order: OrderData):
+    def on_order(self, order: OrderData) -> None:
         """
         Callback when order status is updated.
         """
         pass
 
-    def on_trade(self, trade: TradeData):
+    def on_trade(self, trade: TradeData) -> None:
         """
         Callback when new trade data is received.
         """
         pass
-
-    def stop_open_algos(self):
-        """"""
-        if self.buy_algoid:
-            self.stop_algo(self.buy_algoid)
-
-        if self.short_algoid:
-            self.stop_algo(self.short_algoid)
-
-    def stop_close_algos(self):
-        """"""
-        if self.sell_algoid:
-            self.stop_algo(self.sell_algoid)
-
-        if self.cover_algoid:
-            self.stop_algo(self.cover_algoid)

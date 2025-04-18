@@ -385,7 +385,7 @@ class SpreadData:
     def parse_formula(self, formula: str, data: dict[str, float]) -> Any:
         """"""
         locals().update(data)
-        value = eval(formula)
+        value = eval(formula, {"__builtins__": {}}, data)
         return value
 
     def get_item(self) -> "SpreadItem":

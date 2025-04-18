@@ -879,7 +879,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         data: dict = {variable: 1 for variable in "ABCDE"}
         locals().update(data)
         try:
-            result: Any = eval(formula)
+            result: Any = eval(formula, {"__builtins__": {}}, data)
             return True
         except Exception:
             return False

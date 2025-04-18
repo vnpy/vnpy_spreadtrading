@@ -19,7 +19,6 @@ from vnpy.trader.ui.widget import (
 from ..engine import (
     SpreadEngine,
     SpreadStrategyEngine,
-    SpreadData,
     APP_NAME,
     EVENT_SPREAD_DATA,
     EVENT_SPREAD_POS,

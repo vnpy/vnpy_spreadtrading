@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone_name
 from dataclasses import dataclass
-from types import CodeType
 
 from vnpy.trader.object import (
     HistoryRequest, TickData, PositionData, TradeData, ContractData, BarData

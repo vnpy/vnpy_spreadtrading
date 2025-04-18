@@ -8,12 +8,12 @@ from vnpy.trader.object import (
     TickData, TradeData, OrderData, ContractData, BarData
 )
 from vnpy.trader.constant import Direction, Status, Offset, Interval
-from vnpy.trader.utility import virtual, floor_to, ceil_to, round_to
+from vnpy.trader.utility import floor_to, ceil_to, round_to
 
 from .base import SpreadData, LegData, EngineType, AlgoItem
 
 if TYPE_CHECKING:
-    from .engine import SpreadAlgoEngine, SpreadStrategyEngine
+    from .engine import SpreadStrategyEngine
 
 
 class SpreadAlgoTemplate:

@@ -1,5 +1,6 @@
+from abc import abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from copy import copy
 
@@ -23,7 +24,7 @@ class SpreadAlgoTemplate:
 
     def __init__(
         self,
-        algo_engine: "SpreadAlgoEngine",
+        algo_engine: Any,
         algoid: str,
         spread: SpreadData,
         direction: Direction,
@@ -35,7 +36,7 @@ class SpreadAlgoTemplate:
         extra: dict
     ) -> None:
         """"""
-        self.algo_engine: SpreadAlgoEngine = algo_engine
+        self.algo_engine: Any = algo_engine
         self.algoid: str = algoid
 
         self.spread: SpreadData = spread
@@ -246,12 +247,10 @@ class SpreadAlgoTemplate:
         if self.stopped and vt_symbol == self.spread.active_leg.vt_symbol:
             return
 
-        # Round order volume to min_volume of contract
         leg: LegData = self.spread.legs[vt_symbol]
-        volume: float = round_to(volume, leg.min_volume)
+        volume = round_to(volume, leg.min_volume)
 
-        # Round order price to pricetick of contract
-        price: float = round_to(price, leg.pricetick)
+        price = round_to(price, leg.pricetick)
 
         # 检查价格是否超过涨跌停板
         tick: TickData | None = self.get_tick(vt_symbol)
@@ -261,7 +260,6 @@ class SpreadAlgoTemplate:
         elif direction == Direction.SHORT and tick.limit_down:
             price = max(price, tick.limit_down)
 
-        # Otherwise send order
         vt_orderids: list = self.algo_engine.send_order(
             self,
             vt_symbol,
@@ -306,7 +304,7 @@ class SpreadAlgoTemplate:
                 continue
 
             adjusted_leg_traded: float = leg_traded / trading_multiplier
-            adjusted_leg_traded: float = round_to(adjusted_leg_traded, spread.min_volume)
+            adjusted_leg_traded = round_to(adjusted_leg_traded, spread.min_volume)
 
             if adjusted_leg_traded > 0:
                 adjusted_leg_traded = floor_to(adjusted_leg_traded, spread.min_volume)
@@ -374,25 +372,21 @@ class SpreadAlgoTemplate:
         """"""
         return self.algo_engine.get_contract(vt_symbol)
 
-    @virtual
     def on_tick(self, tick: TickData) -> None:
         """"""
-        pass
+        return
 
-    @virtual
     def on_order(self, order: OrderData) -> None:
         """"""
-        pass
+        return
 
-    @virtual
     def on_trade(self, trade: TradeData) -> None:
         """"""
-        pass
+        return
 
-    @virtual
     def on_interval(self) -> None:
         """"""
-        pass
+        return
 
 
 class SpreadStrategyTemplate:
@@ -497,75 +491,75 @@ class SpreadStrategyTemplate:
 
         self.on_order(order)
 
-    @virtual
+    @abstractmethod
     def on_init(self) -> None:
         """
         Callback when strategy is inited.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_start(self) -> None:
         """
         Callback when strategy is started.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_stop(self) -> None:
         """
         Callback when strategy is stopped.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_spread_data(self) -> None:
         """
         Callback when spread price is updated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_spread_tick(self, tick: TickData) -> None:
         """
         Callback when new spread tick data is generated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_spread_bar(self, bar: BarData) -> None:
         """
         Callback when new spread bar data is generated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_spread_pos(self) -> None:
         """
         Callback when spread position is updated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """
         Callback when algo status is updated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_order(self, order: OrderData) -> None:
         """
         Callback when order status is updated.
         """
-        pass
+        return
 
-    @virtual
+    @abstractmethod
     def on_trade(self, trade: TradeData) -> None:
         """
         Callback when new trade data is received.
         """
-        pass
+        return
 
     def start_algo(
         self,
@@ -604,7 +598,7 @@ class SpreadStrategyTemplate:
         payup: int,
         interval: int,
         lock: bool = False,
-        extra: dict = None
+        extra: dict | None = None
     ) -> str:
         """"""
         if not extra:
@@ -622,7 +616,7 @@ class SpreadStrategyTemplate:
         payup: int,
         interval: int,
         lock: bool = False,
-        extra: dict = None
+        extra: dict | None = None
     ) -> str:
         """"""
         if not extra:
@@ -711,7 +705,7 @@ class SpreadStrategyTemplate:
 
     def get_engine_type(self) -> EngineType:
         """"""
-        self.strategy_engine.get_engine_type()
+        return self.strategy_engine.get_engine_type()
 
     def get_spread_tick(self) -> TickData:
         """"""
@@ -723,7 +717,7 @@ class SpreadStrategyTemplate:
 
     def get_leg_tick(self, vt_symbol: str) -> TickData | None:
         """"""
-        leg: LegData = self.spread.legs.get(vt_symbol, None)
+        leg: LegData | None = self.spread.legs.get(vt_symbol, None)
 
         if not leg:
             return None
@@ -732,7 +726,7 @@ class SpreadStrategyTemplate:
 
     def get_leg_pos(self, vt_symbol: str, direction: Direction = Direction.NET) -> float | None:
         """"""
-        leg: LegData = self.spread.legs.get(vt_symbol, None)
+        leg: LegData | None = self.spread.legs.get(vt_symbol, None)
 
         if not leg:
             return None
@@ -755,13 +749,13 @@ class SpreadStrategyTemplate:
         self,
         days: int,
         interval: Interval = Interval.MINUTE,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> None:
         """
         Load historical bar data for initializing strategy.
         """
-        if not callback:
-            callback: Callable = self.on_spread_bar
+        if callback is None:
+            callback = self.on_spread_bar
 
         self.strategy_engine.load_bar(self.spread, days, interval, callback)
 

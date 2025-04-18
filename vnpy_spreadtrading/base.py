@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone_name
 from dataclasses import dataclass
+from types import CodeType
 
 from vnpy.trader.object import (
     HistoryRequest, TickData, PositionData, TradeData, ContractData, BarData
@@ -103,7 +104,7 @@ class LegData:
                     elif new_pos > 0:
                         self.net_pos_price = trade.price
             else:
-                new_pos: float = self.net_pos - trade.volume
+                new_pos = self.net_pos - trade.volume
 
                 if self.net_pos <= 0:
                     new_cost = old_cost - trade_cost
@@ -152,7 +153,7 @@ class SpreadData:
         self.compile_formula: bool = compile_formula
 
         self.legs: dict[str, LegData] = {}
-        self.active_leg: LegData = None
+        self.active_leg: LegData
         self.passive_legs: list[LegData] = []
 
         self.min_volume: float = min_volume
@@ -190,9 +191,9 @@ class SpreadData:
 
         self.long_pos: int = 0
         self.short_pos: int = 0
-        self.net_pos: int = 0
+        self.net_pos: float = 0
 
-        self.datetime: datetime = None
+        self.datetime: datetime = datetime(1970, 1, 1)
 
         self.leg_pos: defaultdict = defaultdict(int)
 
@@ -206,11 +207,11 @@ class SpreadData:
             self.price_code: str = compile(price_formula, __name__, "eval")
         # 回测时不编译公式，从而支持多进程优化
         else:
-            self.price_code: str = price_formula
+            self.price_code = price_formula
 
         self.variable_legs: dict[str, LegData] = {}
         for variable, vt_symbol in variable_symbols.items():
-            leg: LegData = self.legs[vt_symbol]
+            leg = self.legs[vt_symbol]
             self.variable_legs[variable] = leg
 
     def calculate_price(self) -> bool:
@@ -260,11 +261,11 @@ class SpreadData:
                     self.min_volume
                 )
             else:
-                adjusted_bid_volume: float = floor_to(
+                adjusted_bid_volume = floor_to(
                     leg_ask_volume / abs(trading_multiplier),
                     self.min_volume
                 )
-                adjusted_ask_volume: float = floor_to(
+                adjusted_ask_volume = floor_to(
                     leg_bid_volume / abs(trading_multiplier),
                     self.min_volume
                 )
@@ -361,7 +362,7 @@ class SpreadData:
 
         return spread_volume
 
-    def to_tick(self) -> None:
+    def to_tick(self) -> TickData:
         """"""
         tick: TickData = TickData(
             symbol=self.name,
@@ -475,7 +476,7 @@ def load_bar_data(
         if spread_available:
             spread_price = spread.parse_formula(spread.price_code, leg_data)
             if pricetick:
-                spread_price: float = round_to(spread_price, pricetick)
+                spread_price = round_to(spread_price, pricetick)
 
             spread_bar: BarData = BarData(
                 symbol=spread.name,
@@ -501,9 +502,10 @@ def load_tick_data(
 ) -> list[TickData]:
     """"""
     database: BaseDatabase = get_database()
-    return database.load_tick_data(
+    data: list =  database.load_tick_data(
         spread.name, Exchange.LOCAL, start, end
     )
+    return data
 
 
 def query_bar_from_datafeed(
@@ -535,11 +537,11 @@ class SpreadItem:
     """价差数据容器"""
 
     name: str
-    bid_volume: int
+    bid_volume: float
     bid_price: float
     ask_price: float
-    ask_volume: int
-    net_pos: int
+    ask_volume: float
+    net_pos: float
     datetime: datetime
     price_formula: str
     trading_formula: str

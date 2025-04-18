@@ -162,9 +162,10 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         leg_tick: TickData | None = self.get_tick(vt_symbol)
         leg_contract: ContractData | None = self.get_contract(vt_symbol)
 
-        if leg_volume > 0:
-            price: float = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup
-            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.LONG)
-        elif leg_volume < 0:
-            price = leg_tick.bid_price_1 - leg_contract.pricetick * self.payup
-            self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.SHORT)
+        if leg_tick and leg_contract:
+            if leg_volume > 0:
+                price: float = leg_tick.ask_price_1 + leg_contract.pricetick * self.payup
+                self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.LONG)
+            elif leg_volume < 0:
+                price = leg_tick.bid_price_1 - leg_contract.pricetick * self.payup
+                self.send_order(leg.vt_symbol, price, abs(leg_volume), Direction.SHORT)

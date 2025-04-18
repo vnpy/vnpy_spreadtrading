@@ -183,10 +183,11 @@ class SpreadAlgoTemplate:
         order: OrderData = self.orders[trade.vt_orderid]
         contract: ContractData | None = self.get_contract(trade.vt_symbol)
 
-        trade_volume = round_to(
-            self.order_trade_volume[order.vt_orderid],
-            contract.min_volume
-        )
+        if contract:
+            trade_volume = round_to(
+                self.order_trade_volume[order.vt_orderid],
+                contract.min_volume
+            )
 
         if trade_volume == order.volume:
             vt_orderids: list = self.leg_orders[order.vt_symbol]
@@ -255,10 +256,11 @@ class SpreadAlgoTemplate:
         # 检查价格是否超过涨跌停板
         tick: TickData | None = self.get_tick(vt_symbol)
 
-        if direction == Direction.LONG and tick.limit_up:
-            price = min(price, tick.limit_up)
-        elif direction == Direction.SHORT and tick.limit_down:
-            price = max(price, tick.limit_down)
+        if tick:
+            if direction == Direction.LONG and tick.limit_up:
+                price = min(price, tick.limit_up)
+            elif direction == Direction.SHORT and tick.limit_down:
+                price = max(price, tick.limit_down)
 
         vt_orderids: list = self.algo_engine.send_order(
             self,

@@ -434,7 +434,7 @@ class SpreadAlgoEngine:
 
     def stop(self) -> None:
         """"""
-        for algo in self.algos.values():
+        for algo in self.algos.keys():
             self.stop_algo(algo)
 
     def register_event(self) -> None:
@@ -576,6 +576,8 @@ class SpreadAlgoEngine:
         """"""
         # 创建原始委托请求
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
+        if not contract:
+            return []
 
         if fak:
             order_type: OrderType = OrderType.FAK
@@ -682,6 +684,10 @@ class SpreadStrategyEngine:
         self.register_event()
 
         self.write_log("价差策略引擎启动成功")
+
+    def stop(self) -> None:
+        """"""
+        pass
 
     def close(self) -> None:
         """"""
@@ -1020,6 +1026,8 @@ class SpreadStrategyEngine:
         lock: bool
     ) -> list[str]:
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
+        if not contract:
+            return []
 
         original_req: OrderRequest = OrderRequest(
             symbol=contract.symbol,

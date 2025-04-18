@@ -204,7 +204,7 @@ class SpreadData:
 
         # 实盘时编译公式，加速计算
         if compile_formula:
-            self.price_code: str = compile(price_formula, __name__, "eval")
+            self.price_code: Any = compile(price_formula, __name__, "eval")
         # 回测时不编译公式，从而支持多进程优化
         else:
             self.price_code = price_formula

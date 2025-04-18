@@ -134,7 +134,11 @@ class BacktestingEngine:
         self.capital = capital
         self.risk_free = risk_free
         self.annual_days = annual_days
-        self.end = end
+
+        if not end:
+            end = datetime.now()
+        self.end = end.replace(hour=23, minute=59, second=59)
+
         self.mode = mode
 
     def add_strategy(self, strategy_class: type, setting: dict) -> None:

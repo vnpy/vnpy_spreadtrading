@@ -2,7 +2,7 @@
 Widget for spread trading.
 """
 
-from typing import Dict, List, Any
+from typing import Any
 
 from vnpy.event import EventEngine, Event
 from vnpy.trader.engine import MainEngine
@@ -19,7 +19,6 @@ from vnpy.trader.ui.widget import (
 from ..engine import (
     SpreadEngine,
     SpreadStrategyEngine,
-    SpreadData,
     APP_NAME,
     EVENT_SPREAD_DATA,
     EVENT_SPREAD_POS,
@@ -149,7 +148,7 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
         """"""
         self.setReadOnly(True)
 
-    def register_event(self):
+    def register_event(self) -> None:
         """"""
         self.signal.connect(self.process_log_event)
 
@@ -200,7 +199,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         self.setToolTip("双击单元格停止算法")
         self.itemDoubleClicked.connect(self.stop_algo)
 
-    def stop_algo(self, cell) -> None:
+    def stop_algo(self, cell: QtWidgets.QTableWidgetItem) -> None:
         """
         Stop algo if cell double clicked.
         """
@@ -307,7 +306,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         if lock_str == "锁仓":
             lock: bool = True
         else:
-            lock: bool = False
+            lock = False
 
         price_text = self.price_line.text()
         volume_text = self.volume_line.text()
@@ -357,7 +356,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
             self.spread_engine.get_all_strategy_class_names()
         )
 
-    def remove_strategy(self, strategy_name) -> None:
+    def remove_strategy(self, strategy_name: str) -> None:
         """"""
         manager = self.managers.pop(strategy_name)
         manager.deleteLater()
@@ -400,7 +399,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setMinimumWidth(300)
 
         self.name_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
-        names: List[SpreadData] = self.spread_engine.get_all_spread_names()
+        names: list = self.spread_engine.get_all_spread_names()
         self.name_combo.addItems(names)
 
         button_remove: QtWidgets.QPushButton = QtWidgets.QPushButton("移除")
@@ -432,7 +431,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
 
         self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
 
-        self.managers: Dict[str, SpreadStrategyWidget] = {}
+        self.managers: dict[str, SpreadStrategyWidget] = {}
 
         self.init_ui()
         self.register_event()
@@ -461,7 +460,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             EVENT_SPREAD_STRATEGY, self.signal_strategy.emit
         )
 
-    def process_strategy_event(self, event) -> None:
+    def process_strategy_event(self, event: Event) -> None:
         """
         Update strategy status onto its monitor.
         """
@@ -472,11 +471,11 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             manager: SpreadStrategyWidget = self.managers[strategy_name]
             manager.update_data(data)
         else:
-            manager: SpreadStrategyWidget = SpreadStrategyWidget(self, self.spread_engine, data)
+            manager = SpreadStrategyWidget(self, self.spread_engine, data)
             self.scroll_layout.insertWidget(0, manager)
             self.managers[strategy_name] = manager
 
-    def remove_strategy(self, strategy_name) -> None:
+    def remove_strategy(self, strategy_name: str) -> None:
         """"""
         manager: SpreadStrategyWidget = self.managers.pop(strategy_name)
         manager.deleteLater()
@@ -646,7 +645,7 @@ class SettingEditor(QtWidgets.QDialog):
         self, parameters: dict, strategy_name: str = "", class_name: str = ""
     ) -> None:
         """"""
-        super(SettingEditor, self).__init__()
+        super().__init__()
 
         self.parameters: dict = parameters
         self.strategy_name: str = strategy_name
@@ -668,7 +667,7 @@ class SettingEditor(QtWidgets.QDialog):
             parameters.update(self.parameters)
         else:
             self.setWindowTitle(f"参数编辑：{self.strategy_name}")
-            button_text: str = "确定"
+            button_text = "确定"
             parameters = self.parameters
 
         for name, value in parameters.items():
@@ -679,7 +678,7 @@ class SettingEditor(QtWidgets.QDialog):
                 validator: QtGui.QIntValidator = QtGui.QIntValidator()
                 edit.setValidator(validator)
             elif type_ is float:
-                validator: QtGui.QDoubleValidator = QtGui.QDoubleValidator()
+                validator = QtGui.QDoubleValidator()
                 edit.setValidator(validator)
 
             form.addRow(f"{name} {type_}", edit)
@@ -703,11 +702,11 @@ class SettingEditor(QtWidgets.QDialog):
             edit, type_ = tp
             value_text = edit.text()
 
-            if type_ == bool:
+            if type_ is bool:
                 if value_text == "True":
                     value: bool = True
                 else:
-                    value: bool = False
+                    value = False
             else:
                 value = type_(value_text)
 
@@ -825,7 +824,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
             return
 
         active_symbol: str = self.active_line.text()
-        min_volume: str = float(self.min_volume_combo.currentText())
+        min_volume: float = float(self.min_volume_combo.currentText())
 
         leg_settings: dict = {}
         for d in self.leg_widgets:
@@ -836,8 +835,8 @@ class SpreadDataDialog(QtWidgets.QDialog):
                 if d["direction"].currentText() == "买入":
                     trading_direction: int = 1
                 else:
-                    trading_direction: int = -1
-                trading_multiplier: int = trading_multiplier * trading_direction
+                    trading_direction = -1
+                trading_multiplier = trading_multiplier * trading_direction
 
                 leg_settings[vt_symbol] = {
                     "variable": d["variable"],
@@ -880,7 +879,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         data: dict = {variable: 1 for variable in "ABCDE"}
         locals().update(data)
         try:
-            result: Any = eval(formula)
+            result: Any = eval(formula, {"__builtins__": {}}, data)
             return True
         except Exception:
             return False

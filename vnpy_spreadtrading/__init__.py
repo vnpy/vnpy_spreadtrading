@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 from pathlib import Path
 
-import importlib_metadata
 from vnpy.trader.app import BaseApp
 from vnpy.trader.object import (
     OrderData,
@@ -41,10 +41,22 @@ from .engine import (
 )
 
 
-try:
-    __version__ = importlib_metadata.version("vnpy_spreadtrading")
-except importlib_metadata.PackageNotFoundError:
-    __version__ = "dev"
+__all__ = [
+    "APP_NAME",
+    "SpreadEngine",
+    "SpreadStrategyTemplate",
+    "SpreadAlgoTemplate",
+    "SpreadData",
+    "LegData",
+    "TickData",
+    "BarData",
+    "TradeData",
+    "OrderData",
+    "SpreadTradingApp",
+]
+
+
+__version__ = "1.3.0"
 
 
 class SpreadTradingApp(BaseApp):
@@ -54,6 +66,6 @@ class SpreadTradingApp(BaseApp):
     app_module: str = __module__
     app_path: Path = Path(__file__).parent
     display_name: str = "价差交易"
-    engine_class: SpreadEngine = SpreadEngine
+    engine_class: type[SpreadEngine] = SpreadEngine
     widget_name: str = "SpreadManager"
     icon_name: str = str(app_path.joinpath("ui", "spread.ico"))

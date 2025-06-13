@@ -2,8 +2,6 @@ from vnpy.trader.utility import BarGenerator, ArrayManager
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
     SpreadAlgoTemplate,
-    OrderData,
-    TradeData,
     TickData,
     BarData
 )

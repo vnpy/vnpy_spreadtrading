@@ -3,8 +3,6 @@ from datetime import datetime
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
     SpreadAlgoTemplate,
-    OrderData,
-    TradeData
 )
 
 

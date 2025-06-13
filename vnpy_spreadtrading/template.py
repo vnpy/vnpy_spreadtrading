@@ -7,7 +7,7 @@ from copy import copy
 from vnpy.trader.object import (
     TickData, TradeData, OrderData, ContractData, BarData
 )
-from vnpy.trader.constant import Direction, Status, Offset, Interval
+from vnpy.trader.constant import Direction, Status, Interval
 from vnpy.trader.utility import floor_to, ceil_to, round_to
 
 from .base import SpreadData, LegData, EngineType, AlgoItem
@@ -484,15 +484,6 @@ class SpreadStrategyTemplate:
 
         self.on_spread_algo(algo)
 
-    def update_order(self, order: OrderData) -> None:
-        """
-        Callback when order status is updated.
-        """
-        if not order.is_active() and order.vt_orderid in self.vt_orderids:
-            self.vt_orderids.remove(order.vt_orderid)
-
-        self.on_order(order)
-
     @abstractmethod
     def on_init(self) -> None:
         """
@@ -626,62 +617,6 @@ class SpreadStrategyTemplate:
         """"""
         for algoid in list(self.algoids):
             self.stop_algo(algoid)
-
-    def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False) -> list[str]:
-        """"""
-        return self.send_order(vt_symbol, price, volume, Direction.LONG, Offset.OPEN, lock)
-
-    def sell(self, vt_symbol: str, price: float, volume: float, lock: bool = False) -> list[str]:
-        """"""
-        return self.send_order(vt_symbol, price, volume, Direction.SHORT, Offset.CLOSE, lock)
-
-    def short(self, vt_symbol: str, price: float, volume: float, lock: bool = False) -> list[str]:
-        """"""
-        return self.send_order(vt_symbol, price, volume, Direction.SHORT, Offset.OPEN, lock)
-
-    def cover(self, vt_symbol: str, price: float, volume: float, lock: bool = False) -> list[str]:
-        """"""
-        return self.send_order(vt_symbol, price, volume, Direction.LONG, Offset.CLOSE, lock)
-
-    def send_order(
-        self,
-        vt_symbol: str,
-        price: float,
-        volume: float,
-        direction: Direction,
-        offset: Offset,
-        lock: bool
-    ) -> list[str]:
-        """"""
-        if not self.trading:
-            return []
-
-        vt_orderids: list[str] = self.strategy_engine.send_order(
-            self,
-            vt_symbol,
-            price,
-            volume,
-            direction,
-            offset,
-            lock
-        )
-
-        for vt_orderid in vt_orderids:
-            self.vt_orderids.add(vt_orderid)
-
-        return vt_orderids
-
-    def cancel_order(self, vt_orderid: str) -> None:
-        """"""
-        if not self.trading:
-            return
-
-        self.strategy_engine.cancel_order(self, vt_orderid)
-
-    def cancel_all_orders(self) -> None:
-        """"""
-        for vt_orderid in self.vt_orderids:
-            self.cancel_order(vt_orderid)
 
     def put_event(self) -> None:
         """"""

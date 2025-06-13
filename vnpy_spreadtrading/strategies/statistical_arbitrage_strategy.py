@@ -137,15 +137,3 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
         Callback when algo status is updated.
         """
         pass
-
-    def on_order(self, order: OrderData) -> None:
-        """
-        Callback when order status is updated.
-        """
-        pass
-
-    def on_trade(self, trade: TradeData) -> None:
-        """
-        Callback when new trade data is received.
-        """
-        pass

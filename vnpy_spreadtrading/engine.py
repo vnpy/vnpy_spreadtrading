@@ -681,7 +681,6 @@ class SpreadStrategyEngine:
     def start(self) -> None:
         """"""
         self.load_strategy_setting()
-        self.register_event()
 
         self.write_log("价差策略引擎启动成功")
 
@@ -769,12 +768,6 @@ class SpreadStrategyEngine:
         self.strategy_setting.pop(strategy_name)
         save_json(self.setting_filename, self.strategy_setting)
 
-    def register_event(self) -> None:
-        """"""
-        ee: EventEngine = self.event_engine
-        ee.register(EVENT_ORDER, self.process_order_event)
-        ee.register(EVENT_TRADE, self.process_trade_event)
-
     def update_spread_data(self, spread: SpreadData) -> None:
         """"""
         strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
@@ -798,22 +791,6 @@ class SpreadStrategyEngine:
         if strategy:
             self.call_strategy_func(
                 strategy, strategy.update_spread_algo, algo)
-
-    def process_order_event(self, event: Event) -> None:
-        """"""
-        order: OrderData = event.data
-        strategy: SpreadStrategyTemplate | None = self.order_strategy_map.get(order.vt_orderid, None)
-
-        if strategy:
-            self.call_strategy_func(strategy, strategy.update_order, order)
-
-    def process_trade_event(self, event: Event) -> None:
-        """"""
-        trade: TradeData = event.data
-        strategy: SpreadStrategyTemplate | None = self.order_strategy_map.get(trade.vt_orderid, None)
-
-        if strategy:
-            self.call_strategy_func(strategy, strategy.on_trade, trade)
 
     def call_strategy_func(
         self, strategy: SpreadStrategyTemplate, func: Callable, params: Any = None
@@ -939,7 +916,6 @@ class SpreadStrategyEngine:
         self.call_strategy_func(strategy, strategy.on_stop)
 
         strategy.stop_all_algos()
-        strategy.cancel_all_orders()
 
         strategy.trading = False
 
@@ -1012,73 +988,6 @@ class SpreadStrategyEngine:
         self.spread_engine.stop_algo(algoid)
 
     def stop_all_algos(self, strategy: SpreadStrategyTemplate) -> None:
-        """"""
-        pass
-
-    def send_order(
-        self,
-        strategy: SpreadStrategyTemplate,
-        vt_symbol: str,
-        price: float,
-        volume: float,
-        direction: Direction,
-        offset: Offset,
-        lock: bool
-    ) -> list[str]:
-        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
-        if not contract:
-            return []
-
-        original_req: OrderRequest = OrderRequest(
-            symbol=contract.symbol,
-            exchange=contract.exchange,
-            direction=direction,
-            offset=offset,
-            type=OrderType.LIMIT,
-            price=price,
-            volume=volume,
-            reference=f"{APP_NAME}_{strategy.strategy_name}"
-        )
-
-        # Convert with offset converter
-        req_list: list[OrderRequest] = self.main_engine.convert_order_request(
-            original_req,
-            contract.gateway_name,
-            lock
-        )
-
-        # Send Orders
-        vt_orderids: list = []
-
-        for req in req_list:
-            vt_orderid: str = self.main_engine.send_order(
-                req, contract.gateway_name)
-
-            # Check if sending order successful
-            if not vt_orderid:
-                continue
-
-            vt_orderids.append(vt_orderid)
-
-            self.main_engine.update_order_request(req, vt_orderid, contract.gateway_name)
-
-            # Save relationship between orderid and strategy.
-            self.order_strategy_map[vt_orderid] = strategy
-
-        return vt_orderids
-
-    def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str) -> None:
-        """"""
-        order: OrderData | None = self.main_engine.get_order(vt_orderid)
-        if not order:
-            self.write_strategy_log(
-                strategy, f"撤单失败，找不到委托{vt_orderid}")
-            return
-
-        req: CancelRequest = order.create_cancel_request()
-        self.main_engine.cancel_order(req, order.gateway_name)
-
-    def cancel_all_orders(self, strategy: SpreadStrategyTemplate) -> None:
         """"""
         pass
 

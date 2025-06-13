@@ -151,18 +151,6 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
         self.put_event()
 
-    def on_order(self, order: OrderData) -> None:
-        """
-        Callback when order status is updated.
-        """
-        pass
-
-    def on_trade(self, trade: TradeData) -> None:
-        """
-        Callback when new trade data is received.
-        """
-        pass
-
     def stop_open_algos(self) -> None:
         """"""
         if self.buy_algoid:

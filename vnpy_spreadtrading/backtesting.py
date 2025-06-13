@@ -11,7 +11,6 @@ from plotly.subplots import make_subplots
 
 from vnpy.trader.constant import (
     Direction,
-    Offset,
     Exchange,
     Interval,
     Status
@@ -703,25 +702,6 @@ class BacktestingEngine:
         algo.status = Status.CANCELLED
         self.strategy.update_spread_algo(algo)
 
-    def send_order(
-        self,
-        strategy: SpreadStrategyTemplate,
-        direction: Direction,
-        offset: Offset,
-        price: float,
-        volume: float,
-        stop: bool,
-        lock: bool
-    ) -> None:
-        """"""
-        pass
-
-    def cancel_order(self, strategy: SpreadStrategyTemplate, vt_orderid: str) -> None:
-        """
-        Cancel order by vt_orderid.
-        """
-        pass
-
     def write_strategy_log(self, strategy: SpreadStrategyTemplate, msg: str) -> None:
         """
         Write log message.
@@ -745,10 +725,6 @@ class BacktestingEngine:
         """
         Put an event to update strategy status.
         """
-        pass
-
-    def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
-        """"""
         pass
 
 

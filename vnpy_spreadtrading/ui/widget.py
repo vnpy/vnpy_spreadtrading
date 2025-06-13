@@ -2,8 +2,6 @@
 Widget for spread trading.
 """
 
-from typing import Any
-
 from vnpy.event import EventEngine, Event
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.object import LogData
@@ -877,9 +875,9 @@ class SpreadDataDialog(QtWidgets.QDialog):
     def check_formula(self, formula: str) -> bool:
         """"""
         data: dict = {variable: 1 for variable in "ABCDE"}
-        locals().update(data)
+
         try:
-            result: Any = eval(formula, {"__builtins__": {}}, data)
+            eval(formula, {"__builtins__": {}}, data)
             return True
         except Exception:
             return False

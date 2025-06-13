@@ -549,20 +549,6 @@ class SpreadStrategyTemplate:
         """
         return
 
-    @abstractmethod
-    def on_order(self, order: OrderData) -> None:
-        """
-        Callback when order status is updated.
-        """
-        return
-
-    @abstractmethod
-    def on_trade(self, trade: TradeData) -> None:
-        """
-        Callback when new trade data is received.
-        """
-        return
-
     def start_algo(
         self,
         direction: Direction,

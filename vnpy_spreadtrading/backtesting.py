@@ -727,6 +727,10 @@ class BacktestingEngine:
         """
         pass
 
+    def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
+        """"""
+        pass
+
 
 class DailyResult:
     """"""

@@ -665,7 +665,7 @@ class SpreadStrategyEngine:
 
         self.strategy_setting: dict = {}
 
-        self.classes: dict = {}
+        self.classes: dict[str, type] = {}
         self.strategies: dict[str, SpreadStrategyTemplate] = {}
 
         self.order_strategy_map: dict[str, SpreadStrategyTemplate] = {}
@@ -820,7 +820,7 @@ class SpreadStrategyEngine:
             self.write_log(f"创建策略失败，存在重名{strategy_name}")
             return
 
-        strategy_class: type = self.classes.get(class_name, None)
+        strategy_class: type | None = self.classes.get(class_name, None)
         if not strategy_class:
             self.write_log(f"创建策略失败，找不到策略类{class_name}")
             return

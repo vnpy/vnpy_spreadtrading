@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from vnpy.event import EventEngine, Event
-from vnpy.trader.engine import BaseEngine, MainEngine
+from vnpy.trader.engine import BaseEngine, MainEngine, LogEngine
 from vnpy.trader.event import (
     EVENT_TICK, EVENT_POSITION, EVENT_CONTRACT,
     EVENT_ORDER, EVENT_TRADE, EVENT_TIMER
@@ -50,6 +50,9 @@ class SpreadEngine(BaseEngine):
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.active: bool = False
+
+        log_engine: LogEngine = self.main_engine.get_engine("log")
+        log_engine.register_log(EVENT_SPREAD_LOG)
 
         self.init_data_engine()
         self.init_algo_engine()

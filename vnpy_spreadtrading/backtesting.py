@@ -709,11 +709,13 @@ class BacktestingEngine:
         msg = f"{self.datetime}\t{msg}"
         self.logs.append(msg)
 
-    def send_email(self, msg: str, strategy: SpreadStrategyTemplate | None = None) -> None:
+    def send_notification(self, msg: str, strategy: SpreadStrategyTemplate | None = None) -> None:
         """
-        Send email to default receiver.
+        Push notification through all configured channels.
         """
         pass
+
+    send_email = send_notification
 
     def get_engine_type(self) -> EngineType:
         """

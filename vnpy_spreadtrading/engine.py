@@ -2,7 +2,7 @@ import traceback
 import importlib
 import os
 from types import ModuleType
-from typing import Any
+from typing import Any, cast
 from collections.abc import Callable
 from collections import defaultdict
 from copy import copy
@@ -42,6 +42,11 @@ from .algo import SpreadTakerAlgo
 APP_NAME = "SpreadTrading"
 
 
+def _save_json(filename: str, data: Any) -> None:
+    """Save JSON-serializable data while preserving vn.py's runtime behavior."""
+    save_json(filename, cast(dict[Any, Any], data))
+
+
 class SpreadEngine(BaseEngine):
     """"""
 
@@ -51,7 +56,9 @@ class SpreadEngine(BaseEngine):
 
         self.active: bool = False
 
-        log_engine: LogEngine = self.main_engine.get_engine("log")
+        log_engine = self.main_engine.get_engine("log")
+        if not isinstance(log_engine, LogEngine):
+            raise RuntimeError("LogEngine not found")
         log_engine.register_log(EVENT_SPREAD_LOG)
 
         self.init_data_engine()
@@ -109,7 +116,7 @@ class SpreadEngine(BaseEngine):
 
     def write_log(self, msg: str) -> None:
         """"""
-        log: LegData = LogData(
+        log: LogData = LogData(
             msg=msg,
             gateway_name=APP_NAME
         )
@@ -204,7 +211,7 @@ class SpreadDataEngine:
 
             setting.append(spread_setting)
 
-        save_json(self.setting_filename, setting)
+        _save_json(self.setting_filename, setting)
 
     def save_pos(self) -> None:
         """保存价差持仓"""
@@ -213,7 +220,7 @@ class SpreadDataEngine:
         for spread in self.spreads.values():
             pos_data[spread.name] = spread.leg_pos
 
-        save_json(self.pos_filename, pos_data)
+        _save_json(self.pos_filename, pos_data)
 
     def load_pos(self) -> None:
         """加载价差持仓"""
@@ -759,7 +766,7 @@ class SpreadStrategyEngine:
             "spread_name": strategy.spread_name,
             "setting": setting,
         }
-        save_json(self.setting_filename, self.strategy_setting)
+        _save_json(self.setting_filename, self.strategy_setting)
 
     def remove_strategy_setting(self, strategy_name: str) -> None:
         """
@@ -769,7 +776,7 @@ class SpreadStrategyEngine:
             return
 
         self.strategy_setting.pop(strategy_name)
-        save_json(self.setting_filename, self.strategy_setting)
+        _save_json(self.setting_filename, self.strategy_setting)
 
     def update_spread_data(self, spread: SpreadData) -> None:
         """"""

@@ -26,6 +26,13 @@ from ..engine import (
 )
 
 
+def _get_spread_engine(main_engine: MainEngine) -> SpreadEngine:
+    engine = main_engine.get_engine(APP_NAME)
+    if not isinstance(engine, SpreadEngine):
+        raise RuntimeError("SpreadEngine not found")
+    return engine
+
+
 class SpreadManager(QtWidgets.QWidget):
     """"""
 
@@ -36,7 +43,7 @@ class SpreadManager(QtWidgets.QWidget):
         self.main_engine: MainEngine = main_engine
         self.event_engine: EventEngine = event_engine
 
-        self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
+        self.spread_engine: SpreadEngine = _get_spread_engine(main_engine)
 
         self.init_ui()
 
@@ -186,7 +193,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         """"""
         super().__init__(main_engine, event_engine)
 
-        self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
+        self.spread_engine: SpreadEngine = _get_spread_engine(main_engine)
 
     def init_ui(self) -> None:
         """
@@ -197,7 +204,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         self.setToolTip("双击单元格停止算法")
         self.itemDoubleClicked.connect(self.stop_algo)
 
-    def stop_algo(self, cell: QtWidgets.QTableWidgetItem) -> None:
+    def stop_algo(self, cell: BaseCell) -> None:
         """
         Stop algo if cell double clicked.
         """
@@ -322,7 +329,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
                     self,
                     "启动失败",
                     f"请输入【{name}】",
-                    QtWidgets.QMessageBox.Ok
+                    QtWidgets.QMessageBox.StandardButton.Ok
                 )
                 return
 
@@ -353,11 +360,6 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         self.class_combo.addItems(
             self.spread_engine.get_all_strategy_class_names()
         )
-
-    def remove_strategy(self, strategy_name: str) -> None:
-        """"""
-        manager = self.managers.pop(strategy_name)
-        manager.deleteLater()
 
     def add_strategy(self) -> None:
         """"""
@@ -427,7 +429,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
         self.main_engine: MainEngine = main_engine
         self.event_engine: EventEngine = event_engine
 
-        self.spread_engine: SpreadEngine = main_engine.get_engine(APP_NAME)
+        self.spread_engine: SpreadEngine = _get_spread_engine(main_engine)
 
         self.managers: dict[str, SpreadStrategyWidget] = {}
 
@@ -673,11 +675,11 @@ class SettingEditor(QtWidgets.QDialog):
 
             edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit(str(value))
             if type_ is int:
-                validator: QtGui.QIntValidator = QtGui.QIntValidator()
-                edit.setValidator(validator)
+                int_validator: QtGui.QIntValidator = QtGui.QIntValidator()
+                edit.setValidator(int_validator)
             elif type_ is float:
-                validator = QtGui.QDoubleValidator()
-                edit.setValidator(validator)
+                float_validator: QtGui.QDoubleValidator = QtGui.QDoubleValidator()
+                edit.setValidator(float_validator)
 
             form.addRow(f"{name} {type_}", edit)
 
@@ -751,7 +753,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         button_add: QtWidgets.QPushButton = QtWidgets.QPushButton("创建价差")
         button_add.clicked.connect(self.add_spread)
 
-        Label: QtWidgets.QLabel = QtWidgets.QLabel
+        Label: type[QtWidgets.QLabel] = QtWidgets.QLabel
 
         grid: QtWidgets.QGridLayout = QtWidgets.QGridLayout()
         grid.addWidget(Label("价差名称"), 0, 0)
@@ -807,7 +809,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
                 self,
                 "创建失败",
                 "请输入价差名称",
-                QtWidgets.QMessageBox.Ok
+                QtWidgets.QMessageBox.StandardButton.Ok
             )
             return
 
@@ -817,7 +819,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
                 self,
                 "创建失败",
                 "请输入正确的计算公式",
-                QtWidgets.QMessageBox.Ok
+                QtWidgets.QMessageBox.StandardButton.Ok
             )
             return
 
@@ -850,7 +852,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
                 self,
                 "创建失败",
                 "价差最少需要2条腿",
-                QtWidgets.QMessageBox.Ok
+                QtWidgets.QMessageBox.StandardButton.Ok
             )
             return
 
@@ -859,7 +861,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
                 self,
                 "创建失败",
                 "各条腿中找不到主动腿代码",
-                QtWidgets.QMessageBox.Ok
+                QtWidgets.QMessageBox.StandardButton.Ok
             )
             return
 

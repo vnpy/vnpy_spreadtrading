@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from collections.abc import Callable
 from functools import partial
+from typing import Any
 
 import numpy as np
 from pandas import DataFrame
@@ -15,7 +16,7 @@ from vnpy.trader.constant import (
     Interval,
     Status
 )
-from vnpy.trader.object import TradeData, BarData, TickData
+from vnpy.trader.object import TradeData, BarData, TickData, ContractData
 from vnpy.trader.optimize import (
     OptimizationSetting,
     check_optimization_setting,
@@ -26,6 +27,7 @@ from vnpy.trader.optimize import (
 from .template import SpreadStrategyTemplate, SpreadAlgoTemplate
 from .base import (
     SpreadData,
+    SpreadBarData,
     BacktestingMode,
     load_bar_data,
     load_tick_data,
@@ -39,6 +41,8 @@ INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
     Interval.HOUR: timedelta(hours=1),
     Interval.DAILY: timedelta(days=1),
 }
+
+OptimizationResult = tuple[dict[str, Any], float, dict[str, Any]]
 
 
 class BacktestingEngine:
@@ -79,11 +83,12 @@ class BacktestingEngine:
 
         self.trade_count: int = 0
         self.trades: dict[str, TradeData] = {}
+        self.trade_values: dict[str, float] = {}
 
         self.logs: list = []
 
         self.daily_results: dict[date, DailyResult] = {}
-        self.daily_df: DataFrame = None
+        self.daily_df: DataFrame | None = None
 
     def output(self, msg: str) -> None:
         """
@@ -103,6 +108,7 @@ class BacktestingEngine:
 
         self.trade_count = 0
         self.trades.clear()
+        self.trade_values.clear()
 
         self.logs.clear()
         self.daily_results.clear()
@@ -205,7 +211,7 @@ class BacktestingEngine:
 
         self.output("历史数据回放结束")
 
-    def calculate_result(self) -> DataFrame:
+    def calculate_result(self) -> DataFrame | None:
         """"""
         self.output("开始计算逐日盯市盈亏")
 
@@ -214,9 +220,11 @@ class BacktestingEngine:
 
         # Add trade data into daily reuslt.
         for trade in self.trades.values():
+            assert trade.datetime is not None
             d: date = trade.datetime.date()
             daily_result = self.daily_results[d]
-            daily_result.add_trade(trade)
+            trade_value: float = self.trade_values[trade.vt_tradeid]
+            daily_result.add_trade(trade, trade_value)
 
         # Calculate daily result by iteration.
         pre_close: float = 0
@@ -289,7 +297,8 @@ class BacktestingEngine:
         if df is not None:
             # Calculate balance related time series data
             df["balance"] = df["net_pnl"].cumsum() + self.capital
-            df["return"] = np.log(df["balance"] / df["balance"].shift(1)).fillna(0)
+            daily_return_data: Any = np.log(df["balance"] / df["balance"].shift(1))
+            df["return"] = daily_return_data.fillna(0)
             df["highlevel"] = (
                 df["balance"].rolling(
                     min_periods=1, window=len(df), center=False).max()
@@ -298,14 +307,14 @@ class BacktestingEngine:
             df["ddpercent"] = df["drawdown"] / df["highlevel"] * 100
 
             # All balance value needs to be positive
-            positive_balance = (df["balance"] > 0).all()
+            positive_balance = bool((df["balance"] > 0).all())
             if not positive_balance:
                 self.output("回测中出现爆仓（资金小于等于0），无法计算策略统计指标")
 
-        if positive_balance:
+        if positive_balance and df is not None:
             # Calculate statistics value
-            start_date = df.index[0]
-            end_date = df.index[-1]
+            start_date = str(df.index[0])
+            end_date = str(df.index[-1])
 
             total_days = len(df)
             profit_days = len(df[df["net_pnl"] > 0])
@@ -314,9 +323,10 @@ class BacktestingEngine:
             end_balance = df["balance"].iloc[-1]
             max_drawdown = df["drawdown"].min()
             max_ddpercent = df["ddpercent"].min()
-            max_drawdown_end = df["drawdown"].idxmin()
-            max_drawdown_start = df["balance"][:max_drawdown_end].idxmax()
-            max_drawdown_duration = (max_drawdown_end - max_drawdown_start).days
+            max_drawdown_end: Any = df["drawdown"].idxmin()
+            balance_data: Any = df["balance"]
+            max_drawdown_start: Any = balance_data.loc[:max_drawdown_end].idxmax()
+            max_drawdown_duration = int((max_drawdown_end - max_drawdown_start).days)
 
             total_net_pnl = df["net_pnl"].sum()
             daily_net_pnl = total_net_pnl / total_days
@@ -413,7 +423,7 @@ class BacktestingEngine:
 
         return statistics
 
-    def show_chart(self, df: DataFrame = None) -> None:
+    def show_chart(self, df: DataFrame | None = None) -> None:
         """"""
         # Check DataFrame input exterior
         if df is None:
@@ -604,15 +614,16 @@ class BacktestingEngine:
                 gateway_name=self.gateway_name,
             )
 
-            if self.mode == BacktestingMode.BAR:
-                trade.value = self.bar.value
+            if self.mode == BacktestingMode.BAR and isinstance(self.bar, SpreadBarData):
+                trade_value: float = self.bar.value
             else:
-                trade.value = trade_price
+                trade_value = trade_price
 
             self.spread.net_pos += pos_change
             self.strategy.on_spread_pos()
 
             self.trades[trade.vt_tradeid] = trade
+            self.trade_values[trade.vt_tradeid] = trade_value
 
     def load_bar(
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable
@@ -733,6 +744,35 @@ class BacktestingEngine:
         """"""
         pass
 
+    def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
+        """"""
+        self.strategy.update_spread_algo(algo)
+
+    def send_order(
+        self,
+        algo: SpreadAlgoTemplate,
+        vt_symbol: str,
+        price: float,
+        volume: float,
+        direction: Direction,
+        lock: bool,
+        fak: bool
+    ) -> list[str]:
+        """"""
+        return []
+
+    def cancel_order(self, algo: SpreadAlgoTemplate, vt_orderid: str) -> None:
+        """"""
+        pass
+
+    def get_tick(self, vt_symbol: str) -> TickData | None:
+        """"""
+        return getattr(self, "tick", None)
+
+    def get_contract(self, vt_symbol: str) -> ContractData | None:
+        """"""
+        return None
+
 
 class DailyResult:
     """"""
@@ -743,7 +783,7 @@ class DailyResult:
         self.close_price: float = close_price
         self.pre_close: float = 0
 
-        self.trades: list[TradeData] = []
+        self.trades: list[tuple[TradeData, float]] = []
         self.trade_count: int = 0
 
         self.start_pos: float = 0
@@ -758,9 +798,9 @@ class DailyResult:
         self.total_pnl: float = 0
         self.net_pnl: float = 0
 
-    def add_trade(self, trade: TradeData) -> None:
+    def add_trade(self, trade: TradeData, value: float) -> None:
         """"""
-        self.trades.append(trade)
+        self.trades.append((trade, value))
 
     def calculate_pnl(
         self,
@@ -787,7 +827,7 @@ class DailyResult:
         # Trading pnl is the pnl from new trade during the day
         self.trade_count = len(self.trades)
 
-        for trade in self.trades:
+        for trade, value in self.trades:
             if trade.direction == Direction.LONG:
                 pos_change = trade.volume
             else:
@@ -795,7 +835,7 @@ class DailyResult:
 
             self.end_pos += pos_change
 
-            turnover: float = trade.volume * size * trade.value
+            turnover: float = trade.volume * size * value
             self.trading_pnl += pos_change * \
                 (self.close_price - trade.price) * size
             self.slippage += trade.volume * size * slippage
@@ -821,7 +861,7 @@ def evaluate(
     capital: int,
     end: datetime,
     setting: dict
-) -> tuple:
+) -> OptimizationResult:
     """
     Function for running in multiprocessing.pool
     """
@@ -870,9 +910,9 @@ def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> Callable:
     return func
 
 
-def get_target_value(result: list) -> float:
+def get_target_value(result: tuple[Any, ...]) -> float:
     """
     Get target value for sorting optimization results.
     """
-    target_value: float = result[1]
+    target_value: float = float(result[1])
     return target_value

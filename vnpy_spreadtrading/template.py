@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import Protocol
 from collections.abc import Callable
 from copy import copy
 
@@ -12,8 +12,79 @@ from vnpy.trader.utility import floor_to, ceil_to, round_to
 
 from .base import SpreadData, LegData, EngineType, AlgoItem, decimal_divide
 
-if TYPE_CHECKING:
-    from .engine import SpreadStrategyEngine
+
+class AlgoEngineProtocol(Protocol):
+    """Minimum interface required by spread algos."""
+
+    def put_algo_event(self, algo: "SpreadAlgoTemplate") -> None:
+        ...
+
+    def write_algo_log(self, algo: "SpreadAlgoTemplate", msg: str) -> None:
+        ...
+
+    def send_order(
+        self,
+        algo: "SpreadAlgoTemplate",
+        vt_symbol: str,
+        price: float,
+        volume: float,
+        direction: Direction,
+        lock: bool,
+        fak: bool
+    ) -> list[str]:
+        ...
+
+    def cancel_order(self, algo: "SpreadAlgoTemplate", vt_orderid: str) -> None:
+        ...
+
+    def get_tick(self, vt_symbol: str) -> TickData | None:
+        ...
+
+    def get_contract(self, vt_symbol: str) -> ContractData | None:
+        ...
+
+
+class StrategyEngineProtocol(Protocol):
+    """Minimum interface required by spread strategies."""
+
+    def start_algo(
+        self,
+        strategy: "SpreadStrategyTemplate",
+        spread_name: str,
+        direction: Direction,
+        price: float,
+        volume: float,
+        payup: int,
+        interval: int,
+        lock: bool,
+        extra: dict
+    ) -> str:
+        ...
+
+    def stop_algo(self, strategy: "SpreadStrategyTemplate", algoid: str) -> None:
+        ...
+
+    def load_bar(
+        self, spread: SpreadData, days: int, interval: Interval, callback: Callable
+    ) -> object:
+        ...
+
+    def load_tick(self, spread: SpreadData, days: int, callback: Callable) -> object:
+        ...
+
+    def write_strategy_log(self, strategy: "SpreadStrategyTemplate", msg: str) -> None:
+        ...
+
+    def put_strategy_event(self, strategy: "SpreadStrategyTemplate") -> None:
+        ...
+
+    def get_engine_type(self) -> EngineType:
+        ...
+
+    def send_notification(
+        self, msg: str, strategy: "SpreadStrategyTemplate | None" = None
+    ) -> None:
+        ...
 
 
 class SpreadAlgoTemplate:
@@ -24,7 +95,7 @@ class SpreadAlgoTemplate:
 
     def __init__(
         self,
-        algo_engine: Any,
+        algo_engine: AlgoEngineProtocol,
         algoid: str,
         spread: SpreadData,
         direction: Direction,
@@ -36,7 +107,7 @@ class SpreadAlgoTemplate:
         extra: dict
     ) -> None:
         """"""
-        self.algo_engine: Any = algo_engine
+        self.algo_engine: AlgoEngineProtocol = algo_engine
         self.algoid: str = algoid
 
         self.spread: SpreadData = spread
@@ -194,7 +265,8 @@ class SpreadAlgoTemplate:
             if order.vt_orderid in vt_orderids:
                 vt_orderids.remove(order.vt_orderid)
 
-        msg: str = f"委托成交[{trade.vt_orderid}]，{trade.vt_symbol}，{trade.direction.value}，{trade.volume}@{trade.price}"
+        direction_value: str = trade.direction.value if trade.direction else ""
+        msg: str = f"委托成交[{trade.vt_orderid}]，{trade.vt_symbol}，{direction_value}，{trade.volume}@{trade.price}"
         self.write_log(msg)
 
         self.put_event()
@@ -348,6 +420,9 @@ class SpreadAlgoTemplate:
 
             # Use last price for non-trading leg (trading multiplier is 0)
             if not trading_multiplier:
+                if leg.tick is None:
+                    data.clear()
+                    break
                 data[variable] = leg.tick.last_price
             else:
                 # If any leg is not traded yet, clear data dict to set traded price to 0
@@ -401,13 +476,13 @@ class SpreadStrategyTemplate:
 
     def __init__(
         self,
-        strategy_engine: "SpreadStrategyEngine",
+        strategy_engine: StrategyEngineProtocol,
         strategy_name: str,
         spread: SpreadData,
         setting: dict
     ) -> None:
         """"""
-        self.strategy_engine: SpreadStrategyEngine = strategy_engine
+        self.strategy_engine: StrategyEngineProtocol = strategy_engine
         self.strategy_name: str = strategy_name
         self.spread: SpreadData = spread
         self.spread_name: str = spread.name

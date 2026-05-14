@@ -1,8 +1,8 @@
 from collections import defaultdict
-from typing import Any
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
+from types import CodeType
 from tzlocal import get_localzone_name
 from dataclasses import dataclass
 from decimal import Decimal
@@ -46,7 +46,7 @@ class LegData:
         self.net_pos_price: float = 0       # Average entry price of net position
 
         # Tick data buf
-        self.tick: TickData = None
+        self.tick: TickData | None = None
 
         # Contract data
         self.size: float = 0
@@ -204,7 +204,7 @@ class SpreadData:
 
         # 实盘时编译公式，加速计算
         if compile_formula:
-            self.price_code: Any = compile(price_formula, __name__, "eval")
+            self.price_code: CodeType | str = compile(price_formula, __name__, "eval")
         # 回测时不编译公式，从而支持多进程优化
         else:
             self.price_code = price_formula
@@ -387,10 +387,12 @@ class SpreadData:
         leg: LegData = self.legs[vt_symbol]
         return leg.size
 
-    def parse_formula(self, formula: str, data: dict[str, float]) -> Any:
+    def parse_formula(self, formula: CodeType | str, data: dict[str, float]) -> float:
         """"""
         value = eval(formula, {"__builtins__": {}}, data)
-        return value
+        if not isinstance(value, int | float):
+            raise ValueError(f"Formula must return number, got {type(value).__name__}")
+        return float(value)
 
     def get_item(self) -> "SpreadItem":
         """获取数据对象"""
@@ -458,8 +460,8 @@ def load_bar_data(
     spread_bars: list[BarData] = []
 
     for dt in bars.keys():
-        spread_price = 0
-        spread_value = 0
+        spread_price: float = 0
+        spread_value: float = 0
         spread_available: bool = True
 
         leg_data: dict = {}
@@ -481,9 +483,9 @@ def load_bar_data(
             if pricetick:
                 spread_price = round_to(spread_price, pricetick)
 
-            spread_bar: BarData = BarData(
+            spread_bar: SpreadBarData = SpreadBarData(
                 symbol=spread.name,
-                exchange=exchange.LOCAL,
+                exchange=Exchange.LOCAL,
                 datetime=dt,
                 interval=interval,
                 open_price=spread_price,
@@ -491,8 +493,8 @@ def load_bar_data(
                 low_price=spread_price,
                 close_price=spread_price,
                 gateway_name="SPREAD",
+                value=spread_value
             )
-            spread_bar.value = spread_value
             spread_bars.append(spread_bar)
 
     return spread_bars
@@ -538,6 +540,13 @@ def query_bar_from_datafeed(
 def decimal_divide(value: float, divisor: float) -> float:
     """使用 Decimal 精确除法，避免浮点精度问题。"""
     return float(Decimal(str(value)) / Decimal(str(divisor)))
+
+
+@dataclass
+class SpreadBarData(BarData):
+    """BarData with spread notional value used by backtesting."""
+
+    value: float = 0
 
 
 @dataclass

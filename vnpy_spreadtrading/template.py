@@ -10,7 +10,7 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import Direction, Status, Interval
 from vnpy.trader.utility import floor_to, ceil_to, round_to
 
-from .base import SpreadData, LegData, EngineType, AlgoItem
+from .base import SpreadData, LegData, EngineType, AlgoItem, decimal_divide
 
 if TYPE_CHECKING:
     from .engine import SpreadStrategyEngine
@@ -305,8 +305,7 @@ class SpreadAlgoTemplate:
             if not trading_multiplier:
                 continue
 
-            adjusted_leg_traded: float = leg_traded / trading_multiplier
-            adjusted_leg_traded = round_to(adjusted_leg_traded, spread.min_volume)
+            adjusted_leg_traded: float = decimal_divide(leg_traded, trading_multiplier)
 
             if adjusted_leg_traded > 0:
                 adjusted_leg_traded = floor_to(adjusted_leg_traded, spread.min_volume)

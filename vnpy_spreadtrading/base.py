@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from tzlocal import get_localzone_name
 from dataclasses import dataclass
+from decimal import Decimal
 
 from vnpy.trader.object import (
     HistoryRequest, TickData, PositionData, TradeData, ContractData, BarData
@@ -250,22 +251,24 @@ class SpreadData:
             leg_bid_volume: float = leg.bid_volume
             leg_ask_volume: float = leg.ask_volume
 
+            abs_multiplier: int = abs(trading_multiplier)
+
             if trading_multiplier > 0:
                 adjusted_bid_volume: float = floor_to(
-                    leg_bid_volume / trading_multiplier,
+                    decimal_divide(leg_bid_volume, abs_multiplier),
                     self.min_volume
                 )
                 adjusted_ask_volume: float = floor_to(
-                    leg_ask_volume / trading_multiplier,
+                    decimal_divide(leg_ask_volume, abs_multiplier),
                     self.min_volume
                 )
             else:
                 adjusted_bid_volume = floor_to(
-                    leg_ask_volume / abs(trading_multiplier),
+                    decimal_divide(leg_ask_volume, abs_multiplier),
                     self.min_volume
                 )
                 adjusted_ask_volume = floor_to(
-                    leg_bid_volume / abs(trading_multiplier),
+                    decimal_divide(leg_bid_volume, abs_multiplier),
                     self.min_volume
                 )
 
@@ -314,7 +317,7 @@ class SpreadData:
                 continue
 
             net_pos = self.leg_pos[leg.vt_symbol]
-            adjusted_net_pos = net_pos / trading_multiplier
+            adjusted_net_pos = decimal_divide(net_pos, trading_multiplier)
 
             if adjusted_net_pos > 0:
                 adjusted_net_pos = floor_to(adjusted_net_pos, self.min_volume)
@@ -352,7 +355,7 @@ class SpreadData:
         """"""
         leg: LegData = self.legs[vt_symbol]
         trading_multiplier: int = self.trading_multipliers[leg.vt_symbol]
-        spread_volume: float = leg_volume / trading_multiplier
+        spread_volume: float = decimal_divide(leg_volume, trading_multiplier)
 
         if spread_volume > 0:
             spread_volume = floor_to(spread_volume, self.min_volume)
@@ -528,6 +531,11 @@ def query_bar_from_datafeed(
     )
     data: list[BarData] = datafeed.query_bar_history(req, output)
     return data
+
+
+def decimal_divide(value: float, divisor: float) -> float:
+    """使用 Decimal 精确除法，避免浮点精度问题。"""
+    return float(Decimal(str(value)) / Decimal(str(divisor)))
 
 
 @dataclass

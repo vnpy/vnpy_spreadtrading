@@ -11,6 +11,13 @@ if TYPE_CHECKING:
     from .engine import SpreadAlgoEngine
 
 
+def round_leg_volume(leg: LegData, volume: float) -> float:
+    """"""
+    if leg.min_volume:
+        return round_to(volume, leg.min_volume)
+    return volume
+
+
 class SpreadTakerAlgo(SpreadAlgoTemplate):
     """"""
     algo_name: str = "SpreadTaker"
@@ -135,7 +142,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         # Calcualte spread volume to hedge
         active_leg: LegData = self.spread.active_leg
         active_traded: float = self.leg_traded[active_leg.vt_symbol]
-        active_traded = round_to(active_traded, self.spread.min_volume)
+        active_traded = round_leg_volume(active_leg, active_traded)
 
         hedge_volume: float = self.spread.calculate_spread_volume(
             active_leg.vt_symbol,
@@ -145,7 +152,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         # Calculate passive leg target volume and do hedge
         for leg in self.spread.passive_legs:
             passive_traded: float = self.leg_traded[leg.vt_symbol]
-            passive_traded = round_to(passive_traded, self.spread.min_volume)
+            passive_traded = round_leg_volume(leg, passive_traded)
 
             passive_target: float = self.spread.calculate_leg_volume(
                 leg.vt_symbol,

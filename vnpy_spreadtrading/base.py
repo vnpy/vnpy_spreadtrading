@@ -189,8 +189,8 @@ class SpreadData:
         self.bid_volume: float = 0
         self.ask_volume: float = 0
 
-        self.long_pos: int = 0
-        self.short_pos: int = 0
+        self.long_pos: float = 0
+        self.short_pos: float = 0
         self.net_pos: float = 0
 
         self.datetime: datetime = datetime.now(LOCAL_TZ)
@@ -305,12 +305,13 @@ class SpreadData:
 
     def calculate_pos(self) -> None:
         """"""
-        long_pos = 0
-        short_pos = 0
+        long_pos: float = 0
+        short_pos: float = 0
+        pos_inited: bool = False
 
-        for n, leg in enumerate(self.legs.values()):
-            leg_long_pos = 0
-            leg_short_pos = 0
+        for leg in self.legs.values():
+            leg_long_pos: float = 0
+            leg_short_pos: float = 0
 
             trading_multiplier: int = self.trading_multipliers[leg.vt_symbol]
             if not trading_multiplier:
@@ -326,9 +327,10 @@ class SpreadData:
                 adjusted_net_pos = ceil_to(adjusted_net_pos, self.min_volume)
                 leg_short_pos = abs(adjusted_net_pos)
 
-            if not n:
+            if not pos_inited:
                 long_pos = leg_long_pos
                 short_pos = leg_short_pos
+                pos_inited = True
             else:
                 long_pos = min(long_pos, leg_long_pos)
                 short_pos = min(short_pos, leg_short_pos)

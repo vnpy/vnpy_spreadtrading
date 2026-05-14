@@ -661,12 +661,14 @@ class SpreadStrategyTemplate:
         else:
             return leg.short_pos
 
-    def send_email(self, msg: str) -> None:
+    def send_notification(self, msg: str) -> None:
         """
-        Send email to default receiver.
+        Push notification through all configured channels.
         """
         if self.inited:
-            self.strategy_engine.send_email(msg, self)
+            self.strategy_engine.send_notification(msg, self)
+
+    send_email = send_notification
 
     def load_bar(
         self,

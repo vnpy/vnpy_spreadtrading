@@ -1005,14 +1005,16 @@ class SpreadStrategyEngine:
         msg = f"{strategy.strategy_name}：{msg}"
         self.write_log(msg)
 
-    def send_email(self, msg: str, strategy: SpreadStrategyTemplate | None = None) -> None:
-        """"""
+    def send_notification(self, msg: str, strategy: SpreadStrategyTemplate | None = None) -> None:
+        """
+        Push notification through all configured channels.
+        """
         if strategy:
             subject: str = f"{strategy.strategy_name}"
         else:
             subject = "价差策略引擎"
 
-        self.main_engine.send_email(subject, msg)
+        self.main_engine.send_notification(msg, subject)
 
     def get_engine_type(self) -> EngineType:
         """"""

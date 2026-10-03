@@ -1,3 +1,5 @@
+"""价差腿、价差数据以及历史行情加载。"""
+
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime
@@ -26,10 +28,10 @@ LOCAL_TZ = ZoneInfo(get_localzone_name())
 
 
 class LegData:
-    """"""
+    """一条价差腿的行情、持仓和合约数据。"""
 
     def __init__(self, vt_symbol: str) -> None:
-        """"""
+        """按合约代码初始化价格、持仓和合约字段。"""
         self.vt_symbol: str = vt_symbol
 
         # Price and position data
@@ -55,14 +57,14 @@ class LegData:
         self.pricetick: float = 0
 
     def update_contract(self, contract: ContractData) -> None:
-        """"""
+        """用合约更新乘数、净持仓模式、最小交易量和价格跳动。"""
         self.size = contract.size
         self.net_position = contract.net_position
         self.min_volume = contract.min_volume
         self.pricetick = contract.pricetick
 
     def update_tick(self, tick: TickData) -> None:
-        """"""
+        """用Tick更新买卖价量与最新价，并缓存该Tick。"""
         self.bid_price = tick.bid_price_1
         self.ask_price = tick.ask_price_1
         self.bid_volume = tick.bid_volume_1
@@ -72,7 +74,7 @@ class LegData:
         self.tick = tick
 
     def update_position(self, position: PositionData) -> None:
-        """"""
+        """净持仓方向时写入净仓和持仓价，否则更新对应方向持仓并重算净仓。"""
         if position.direction == Direction.NET:
             self.net_pos = position.volume
             self.net_pos_price = position.price
@@ -84,7 +86,7 @@ class LegData:
             self.net_pos = self.long_pos - self.short_pos
 
     def update_trade(self, trade: TradeData) -> None:
-        """"""
+        """按成交更新持仓；净持仓模式下同时重算净仓均价。"""
         # Only update net pos for contract with net position mode
         if self.net_position:
             trade_cost: float = trade.volume * trade.price
@@ -134,7 +136,7 @@ class LegData:
 
 
 class SpreadData:
-    """"""
+    """价差的腿、盘口、持仓和价格公式。"""
 
     def __init__(
         self,
@@ -148,7 +150,7 @@ class SpreadData:
         min_volume: float,
         compile_formula: bool = True
     ) -> None:
-        """"""
+        """组装各腿与交易公式；compile_formula 为真时编译价格公式。"""
         self.name: str = name
         self.compile_formula: bool = compile_formula
 
@@ -297,14 +299,14 @@ class SpreadData:
         return True
 
     def update_trade(self, trade: TradeData) -> None:
-        """更新委托成交"""
+        """更新委托成交。"""
         if trade.direction == Direction.LONG:
             self.leg_pos[trade.vt_symbol] += trade.volume
         else:
             self.leg_pos[trade.vt_symbol] -= trade.volume
 
     def calculate_pos(self) -> None:
-        """"""
+        """按交易乘数汇总多空仓与净仓，并跳过乘数为 0 的腿。"""
         long_pos: float = 0
         short_pos: float = 0
         pos_inited: bool = False
@@ -340,21 +342,21 @@ class SpreadData:
         self.net_pos = long_pos - short_pos
 
     def clear_price(self) -> None:
-        """"""
+        """把价差买卖价和买卖量清零。"""
         self.bid_price = 0
         self.ask_price = 0
         self.bid_volume = 0
         self.ask_volume = 0
 
     def calculate_leg_volume(self, vt_symbol: str, spread_volume: float) -> float:
-        """"""
+        """用价差数量乘以该腿的交易乘数。"""
         leg: LegData = self.legs[vt_symbol]
         trading_multiplier: int = self.trading_multipliers[leg.vt_symbol]
         leg_volume: float = spread_volume * trading_multiplier
         return leg_volume
 
     def calculate_spread_volume(self, vt_symbol: str, leg_volume: float) -> float:
-        """"""
+        """用腿数量除以交易乘数，正数向下取整，否则向上取整。"""
         leg: LegData = self.legs[vt_symbol]
         trading_multiplier: int = self.trading_multipliers[leg.vt_symbol]
         spread_volume: float = decimal_divide(leg_volume, trading_multiplier)
@@ -367,7 +369,7 @@ class SpreadData:
         return spread_volume
 
     def to_tick(self) -> TickData:
-        """"""
+        """把当前价差盘口转成 TickData。"""
         tick: TickData = TickData(
             symbol=self.name,
             exchange=Exchange.LOCAL,
@@ -383,19 +385,19 @@ class SpreadData:
         return tick
 
     def get_leg_size(self, vt_symbol: str) -> float:
-        """"""
+        """返回指定腿的合约乘数。"""
         leg: LegData = self.legs[vt_symbol]
         return leg.size
 
     def parse_formula(self, formula: CodeType | str, data: dict[str, float]) -> float:
-        """"""
+        """在空内置命名空间中求值公式，结果不是数字时抛出 ValueError。"""
         value = eval(formula, {"__builtins__": {}}, data)
         if not isinstance(value, int | float):
             raise ValueError(f"Formula must return number, got {type(value).__name__}")
         return float(value)
 
     def get_item(self) -> "SpreadItem":
-        """获取数据对象"""
+        """获取数据对象。"""
         item: SpreadItem = SpreadItem(
             name=self.name,
             bid_volume=self.bid_volume,
@@ -411,11 +413,13 @@ class SpreadData:
 
 
 class EngineType(Enum):
+    """引擎运行类型。"""
     LIVE = "实盘"
     BACKTESTING = "回测"
 
 
 class BacktestingMode(Enum):
+    """回测使用的数据类型。"""
     BAR = 1
     TICK = 2
 
@@ -429,7 +433,7 @@ def load_bar_data(
     output: Callable = print,
     backtesting: bool = False
 ) -> list[BarData]:
-    """"""
+    """按同一时刻合成价差K线；非回测时优先从数据服务查询。"""
     database: BaseDatabase = get_database()
 
     # Load bar data of each spread leg
@@ -505,7 +509,7 @@ def load_tick_data(
     start: datetime,
     end: datetime
 ) -> list[TickData]:
-    """"""
+    """从数据库加载该价差在本地交易所的Tick。"""
     database: BaseDatabase = get_database()
     data: list =  database.load_tick_data(
         spread.name, Exchange.LOCAL, start, end
@@ -522,7 +526,7 @@ def query_bar_from_datafeed(
     output: Callable = print
 ) -> list[BarData]:
     """
-    Query bar data from RQData.
+    从 RQData 查询 K 线数据。
     """
     datafeed: BaseDatafeed = get_datafeed()
 
@@ -544,14 +548,14 @@ def decimal_divide(value: float, divisor: float) -> float:
 
 @dataclass
 class SpreadBarData(BarData):
-    """BarData with spread notional value used by backtesting."""
+    """回测使用的、带价差名义价值的 K 线数据。"""
 
     value: float = 0
 
 
 @dataclass
 class SpreadItem:
-    """价差数据容器"""
+    """价差数据容器。"""
 
     name: str
     bid_volume: float
@@ -566,7 +570,7 @@ class SpreadItem:
 
 @dataclass
 class AlgoItem:
-    """算法数据容器"""
+    """算法数据容器。"""
 
     algoid: str
     spread_name: str

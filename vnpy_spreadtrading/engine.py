@@ -1,3 +1,5 @@
+"""价差交易的数据、算法和策略引擎。"""
+
 import traceback
 import importlib
 import os
@@ -43,15 +45,15 @@ APP_NAME = "SpreadTrading"
 
 
 def _save_json(filename: str, data: Any) -> None:
-    """Save JSON-serializable data while preserving vn.py's runtime behavior."""
+    """保存可序列化为 JSON 的数据，并保持 vn.py 的运行时行为。"""
     save_json(filename, cast(dict[Any, Any], data))
 
 
 class SpreadEngine(BaseEngine):
-    """"""
+    """价差交易主引擎。"""
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """Constructor"""
+        """构造函数。"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.active: bool = False
@@ -66,7 +68,7 @@ class SpreadEngine(BaseEngine):
         self.init_strategy_engine()
 
     def init_data_engine(self) -> None:
-        """初始化数据引擎"""
+        """初始化数据引擎。"""
         self.data_engine: SpreadDataEngine = SpreadDataEngine(self)
 
         self.add_spread = self.data_engine.add_spread
@@ -75,14 +77,14 @@ class SpreadEngine(BaseEngine):
         self.get_all_spread_names = self.data_engine.get_all_spread_names
 
     def init_algo_engine(self) -> None:
-        """初始化算法引擎"""
+        """初始化算法引擎。"""
         self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
 
         self.start_algo = self.algo_engine.start_algo
         self.stop_algo = self.algo_engine.stop_algo
 
     def init_strategy_engine(self) -> None:
-        """初始化策略引擎"""
+        """初始化策略引擎。"""
         self.strategy_engine: SpreadStrategyEngine = SpreadStrategyEngine(self)
 
         self.get_all_strategy_class_names = self.strategy_engine.get_all_strategy_class_names
@@ -99,7 +101,7 @@ class SpreadEngine(BaseEngine):
         self.remove_strategy = self.strategy_engine.remove_strategy
 
     def start(self) -> None:
-        """"""
+        """已经启动时直接返回，否则启动数据、算法和策略引擎。"""
         if self.active:
             return
         self.active = True
@@ -109,13 +111,13 @@ class SpreadEngine(BaseEngine):
         self.strategy_engine.start()
 
     def stop(self) -> None:
-        """"""
+        """停止数据、算法和策略引擎。"""
         self.data_engine.stop()
         self.algo_engine.stop()
         self.strategy_engine.stop()
 
     def write_log(self, msg: str) -> None:
-        """"""
+        """发出价差日志事件。"""
         log: LogData = LogData(
             msg=msg,
             gateway_name=APP_NAME
@@ -124,26 +126,26 @@ class SpreadEngine(BaseEngine):
         self.event_engine.put(event)
 
     def update_spread_data(self, spread: SpreadData) -> None:
-        """"""
+        """把价差数据更新转发给算法引擎和策略引擎。"""
         self.algo_engine.update_spread_data(spread)
         self.strategy_engine.update_spread_data(spread)
 
     def update_spread_pos(self, spread: SpreadData) -> None:
-        """"""
+        """把价差持仓更新转发给策略引擎。"""
         self.strategy_engine.update_spread_pos(spread)
 
     def update_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
-        """"""
+        """把价差算法更新转发给策略引擎。"""
         self.strategy_engine.update_spread_algo(algo)
 
 
 class SpreadDataEngine:
-    """"""
+    """维护价差腿、盘口和持仓的数据引擎。"""
     setting_filename: str = "spread_trading_setting.json"
     pos_filename: str = "spread_trading_pos.json"
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """保存引擎引用，并初始化腿、价差和委托映射。"""
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
@@ -158,7 +160,7 @@ class SpreadDataEngine:
         self.tradeid_history: set[str] = set()
 
     def start(self) -> None:
-        """"""
+        """加载配置与持仓并注册事件。"""
         self.load_setting()
         self.load_pos()
         self.register_event()
@@ -166,11 +168,11 @@ class SpreadDataEngine:
         self.write_log("价差数据引擎启动成功")
 
     def stop(self) -> None:
-        """"""
+        """不执行任何操作。"""
         pass
 
     def load_setting(self) -> None:
-        """"""
+        """从配置文件创建价差，且创建时不再写回配置。"""
         setting: dict = load_json(self.setting_filename)
 
         for spread_setting in setting:
@@ -184,7 +186,7 @@ class SpreadDataEngine:
             )
 
     def save_setting(self) -> None:
-        """"""
+        """把当前价差配置写入文件。"""
         setting: list = []
 
         for spread in self.spreads.values():
@@ -214,7 +216,7 @@ class SpreadDataEngine:
         _save_json(self.setting_filename, setting)
 
     def save_pos(self) -> None:
-        """保存价差持仓"""
+        """保存价差持仓。"""
         pos_data: dict = {}
 
         for spread in self.spreads.values():
@@ -223,7 +225,7 @@ class SpreadDataEngine:
         _save_json(self.pos_filename, pos_data)
 
     def load_pos(self) -> None:
-        """加载价差持仓"""
+        """加载价差持仓。"""
         pos_data: dict = load_json(self.pos_filename)
 
         for name, leg_pos in pos_data.items():
@@ -232,14 +234,14 @@ class SpreadDataEngine:
                 spread.leg_pos.update(leg_pos)
 
     def register_event(self) -> None:
-        """"""
+        """注册行情、成交、持仓和合约事件。"""
         self.event_engine.register(EVENT_TICK, self.process_tick_event)
         self.event_engine.register(EVENT_TRADE, self.process_trade_event)
         self.event_engine.register(EVENT_POSITION, self.process_position_event)
         self.event_engine.register(EVENT_CONTRACT, self.process_contract_event)
 
     def process_tick_event(self, event: Event) -> None:
-        """"""
+        """找不到腿时返回；否则更新行情，价差盘口计算成功才发出数据事件。"""
         tick: TickData = event.data
 
         leg: LegData | None = self.legs.get(tick.vt_symbol, None)
@@ -253,7 +255,7 @@ class SpreadDataEngine:
                 self.put_data_event(spread)
 
     def process_position_event(self, event: Event) -> None:
-        """"""
+        """找不到腿时返回；否则更新腿持仓，重算价差持仓后发出持仓事件。"""
         position: PositionData = event.data
 
         leg: LegData | None = self.legs.get(position.vt_symbol, None)
@@ -266,7 +268,7 @@ class SpreadDataEngine:
             self.put_pos_event(spread)
 
     def process_trade_event(self, event: Event) -> None:
-        """"""
+        """忽略重复成交；委托属于某价差时更新其持仓并保存。"""
         trade: TradeData = event.data
 
         if trade.vt_tradeid in self.tradeid_history:
@@ -283,7 +285,7 @@ class SpreadDataEngine:
             self.save_pos()
 
     def process_contract_event(self, event: Event) -> None:
-        """"""
+        """腿已存在时更新合约并订阅行情。"""
         contract: ContractData = event.data
         leg: LegData | None = self.legs.get(contract.vt_symbol, None)
 
@@ -297,21 +299,21 @@ class SpreadDataEngine:
             self.main_engine.subscribe(req, contract.gateway_name)
 
     def put_data_event(self, spread: SpreadData) -> None:
-        """"""
+        """通知主引擎并推出价差数据事件。"""
         self.spread_engine.update_spread_data(spread)
 
         event: Event = Event(EVENT_SPREAD_DATA, spread.get_item())
         self.event_engine.put(event)
 
     def put_pos_event(self, spread: SpreadData) -> None:
-        """"""
+        """通知主引擎并推出价差持仓事件。"""
         self.spread_engine.update_spread_pos(spread)
 
         event: Event = Event(EVENT_SPREAD_POS, spread.get_item())
         self.event_engine.put(event)
 
     def get_leg(self, vt_symbol: str) -> LegData:
-        """"""
+        """获取腿；不存在时创建，有合约则订阅行情并同步已有持仓。"""
         leg: LegData | None = self.legs.get(vt_symbol, None)
 
         if not leg:
@@ -346,7 +348,7 @@ class SpreadDataEngine:
         min_volume: float,
         save: bool = True
     ) -> None:
-        """"""
+        """创建价差；名称重复时记日志并返回。"""
         if name in self.spreads:
             self.write_log(f"价差创建失败，名称重复：{name}")
             return
@@ -388,7 +390,7 @@ class SpreadDataEngine:
         self.put_data_event(spread)
 
     def remove_spread(self, name: str) -> None:
-        """"""
+        """移除价差并保存配置；名称不存在时返回。"""
         if name not in self.spreads:
             return
 
@@ -401,25 +403,25 @@ class SpreadDataEngine:
         self.write_log(f"价差移除成功：{name}，重启后生效")
 
     def get_spread(self, name: str) -> SpreadData | None:
-        """"""
+        """按名称获取价差。"""
         spread: SpreadData | None = self.spreads.get(name, None)
         return spread
 
     def get_all_spread_names(self) -> list[str]:
-        """"""
+        """返回全部价差名称。"""
         return list(self.spreads.keys())
 
     def update_order_spread_map(self, vt_orderid: str, spread: SpreadData) -> None:
-        """更新委托号对应的价差映射关系"""
+        """更新委托号对应的价差映射关系。"""
         self.order_spread_map[vt_orderid] = spread
 
 
 class SpreadAlgoEngine:
-    """"""
+    """管理价差算法委托的引擎。"""
     algo_class: type[SpreadTakerAlgo] = SpreadTakerAlgo
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """初始化算法、委托映射和成交去重集合。"""
         self.spread_engine: SpreadEngine = spread_engine
         self.data_engine: SpreadDataEngine = spread_engine.data_engine
         self.main_engine: MainEngine = spread_engine.main_engine
@@ -437,29 +439,29 @@ class SpreadAlgoEngine:
         self.vt_tradeids: set = set()
 
     def start(self) -> None:
-        """"""
+        """注册事件并记录启动日志。"""
         self.register_event()
 
         self.write_log("价差算法引擎启动成功")
 
     def stop(self) -> None:
-        """"""
+        """停止全部算法。"""
         for algo in self.algos.keys():
             self.stop_algo(algo)
 
     def register_event(self) -> None:
-        """"""
+        """注册行情、委托、成交和定时器事件。"""
         self.event_engine.register(EVENT_TICK, self.process_tick_event)
         self.event_engine.register(EVENT_ORDER, self.process_order_event)
         self.event_engine.register(EVENT_TRADE, self.process_trade_event)
         self.event_engine.register(EVENT_TIMER, self.process_timer_event)
 
     def update_spread_data(self, spread: SpreadData) -> None:
-        """"""
+        """缓存最新价差数据。"""
         self.spreads[spread.name] = spread
 
     def process_tick_event(self, event: Event) -> None:
-        """"""
+        """向该合约上仍活跃的算法推送行情，并移除已不活跃的算法。"""
         tick: TickData = event.data
         algos: list[SpreadAlgoTemplate] = self.symbol_algo_map[tick.vt_symbol]
         if not algos:
@@ -473,7 +475,7 @@ class SpreadAlgoEngine:
                 algo.update_tick(tick)
 
     def process_order_event(self, event: Event) -> None:
-        """"""
+        """向对应的活跃算法推送委托更新。"""
         order: OrderData = event.data
 
         algo: SpreadAlgoTemplate | None = self.order_algo_map.get(order.vt_orderid, None)
@@ -481,7 +483,7 @@ class SpreadAlgoEngine:
             algo.update_order(order)
 
     def process_trade_event(self, event: Event) -> None:
-        """"""
+        """忽略重复成交，并向对应的活跃算法推送成交。"""
         trade: TradeData = event.data
 
         # Filter duplicate trade push
@@ -494,7 +496,7 @@ class SpreadAlgoEngine:
             algo.update_trade(trade)
 
     def process_timer_event(self, event: Event) -> None:
-        """"""
+        """移除已结束的算法，并让活跃算法更新定时器。"""
         buf: list[SpreadAlgoTemplate] = list(self.algos.values())
 
         for algo in buf:
@@ -514,6 +516,7 @@ class SpreadAlgoEngine:
         lock: bool,
         extra: dict
     ) -> str:
+        """创建价差算法并返回编号；找不到价差时返回空字符串。"""
         # Find spread object
         spread: SpreadData | None = self.spreads.get(spread_name, None)
         if not spread:
@@ -553,7 +556,7 @@ class SpreadAlgoEngine:
         self,
         algoid: str
     ) -> None:
-        """"""
+        """停止指定算法；找不到时记日志。"""
         algo: SpreadAlgoTemplate | None = self.algos.get(algoid, None)
         if not algo:
             self.write_log(f"停止价差算法失败，找不到算法：{algoid}")
@@ -562,14 +565,14 @@ class SpreadAlgoEngine:
         algo.stop()
 
     def put_algo_event(self, algo: SpreadAlgoTemplate) -> None:
-        """"""
+        """通知主引擎并推出算法事件。"""
         self.spread_engine.update_spread_algo(algo)
 
         event: Event = Event(EVENT_SPREAD_ALGO, algo.get_item())
         self.event_engine.put(event)
 
     def write_algo_log(self, algo: SpreadAlgoTemplate, msg: str) -> None:
-        """"""
+        """写入带算法编号前缀的日志。"""
         msg = f"{algo.algoid}：{msg}"
         self.write_log(msg)
 
@@ -583,7 +586,7 @@ class SpreadAlgoEngine:
         lock: bool,
         fak: bool
     ) -> list[str]:
-        """"""
+        """合约不存在时返回空列表；否则按FAK或限价转换委托后发送，并返回成功的委托号。"""
         # 创建原始委托请求
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
         if not contract:
@@ -640,7 +643,7 @@ class SpreadAlgoEngine:
         return vt_orderids
 
     def cancel_order(self, algo: SpreadAlgoTemplate, vt_orderid: str) -> None:
-        """"""
+        """撤销委托；找不到委托时记日志。"""
         order: OrderData | None = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_algo_log(algo, f"撤单失败，找不到委托{vt_orderid}")
@@ -650,23 +653,23 @@ class SpreadAlgoEngine:
         self.main_engine.cancel_order(req, order.gateway_name)
 
     def get_tick(self, vt_symbol: str) -> TickData | None:
-        """"""
+        """获取合约行情。"""
         return self.main_engine.get_tick(vt_symbol)
 
     def get_contract(self, vt_symbol: str) -> ContractData | None:
-        """"""
+        """获取合约信息。"""
         return self.main_engine.get_contract(vt_symbol)
 
 
 class SpreadStrategyEngine:
-    """"""
+    """加载并运行价差策略的引擎。"""
 
     engine_type: EngineType = EngineType.LIVE
 
     setting_filename: str = "spread_trading_strategy.json"
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """初始化策略容器并加载策略类。"""
         self.spread_engine: SpreadEngine = spread_engine
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
@@ -689,22 +692,22 @@ class SpreadStrategyEngine:
         self.load_strategy_class()
 
     def start(self) -> None:
-        """"""
+        """加载策略配置并记录启动日志。"""
         self.load_strategy_setting()
 
         self.write_log("价差策略引擎启动成功")
 
     def stop(self) -> None:
-        """"""
+        """不执行任何操作。"""
         pass
 
     def close(self) -> None:
-        """"""
+        """停止全部策略。"""
         self.stop_all_strategies()
 
     def load_strategy_class(self) -> None:
         """
-        Load strategy class from source code.
+        从源代码加载策略类。
         """
         path1: Path = Path(__file__).parent.joinpath("strategies")
         self.load_strategy_class_from_folder(path1, "vnpy_spreadtrading.strategies")
@@ -714,7 +717,7 @@ class SpreadStrategyEngine:
 
     def load_strategy_class_from_folder(self, path: Path, module_name: str = "") -> None:
         """
-        Load strategy class from certain folder.
+        从指定目录加载策略类。
         """
         for _dirpath, _dirnames, filenames in os.walk(str(path)):
             for filename in filenames:
@@ -724,7 +727,7 @@ class SpreadStrategyEngine:
 
     def load_strategy_class_from_module(self, module_name: str) -> None:
         """
-        Load strategy class from module file.
+        从模块文件加载策略类。
         """
         try:
             module: ModuleType = importlib.import_module(module_name)
@@ -738,12 +741,12 @@ class SpreadStrategyEngine:
             self.write_log(msg)
 
     def get_all_strategy_class_names(self) -> list:
-        """"""
+        """返回全部策略类名。"""
         return list(self.classes.keys())
 
     def load_strategy_setting(self) -> None:
         """
-        Load setting file.
+        加载配置文件。
         """
         self.strategy_setting = load_json(self.setting_filename)
 
@@ -757,7 +760,7 @@ class SpreadStrategyEngine:
 
     def update_strategy_setting(self, strategy_name: str, setting: dict) -> None:
         """
-        Update setting file.
+        更新配置文件。
         """
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
 
@@ -770,7 +773,7 @@ class SpreadStrategyEngine:
 
     def remove_strategy_setting(self, strategy_name: str) -> None:
         """
-        Update setting file.
+        从配置文件中移除策略。
         """
         if strategy_name not in self.strategy_setting:
             return
@@ -779,7 +782,7 @@ class SpreadStrategyEngine:
         _save_json(self.setting_filename, self.strategy_setting)
 
     def update_spread_data(self, spread: SpreadData) -> None:
-        """"""
+        """向已初始化的策略推送价差数据。"""
         strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
@@ -787,7 +790,7 @@ class SpreadStrategyEngine:
                 self.call_strategy_func(strategy, strategy.on_spread_data)
 
     def update_spread_pos(self, spread: SpreadData) -> None:
-        """"""
+        """向已初始化的策略推送价差持仓。"""
         strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
         for strategy in strategies:
@@ -795,7 +798,7 @@ class SpreadStrategyEngine:
                 self.call_strategy_func(strategy, strategy.on_spread_pos)
 
     def update_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
-        """"""
+        """把算法更新交给对应策略。"""
         strategy: SpreadStrategyTemplate | None = self.algo_strategy_map.get(algo.algoid, None)
 
         if strategy:
@@ -806,7 +809,7 @@ class SpreadStrategyEngine:
         self, strategy: SpreadStrategyTemplate, func: Callable, params: Any = None
     ) -> None:
         """
-        Call function of a strategy and catch any exception raised.
+        调用策略函数并捕获抛出的异常。
         """
         try:
             if params:
@@ -824,7 +827,7 @@ class SpreadStrategyEngine:
         self, class_name: str, strategy_name: str, spread_name: str, setting: dict
     ) -> None:
         """
-        Add a new strategy.
+        添加一个新策略。
         """
         if strategy_name in self.strategies:
             self.write_log(f"创建策略失败，存在重名{strategy_name}")
@@ -854,7 +857,7 @@ class SpreadStrategyEngine:
 
     def edit_strategy(self, strategy_name: str, setting: dict) -> None:
         """
-        Edit parameters of a strategy.
+        修改策略参数。
         """
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         strategy.update_setting(setting)
@@ -864,7 +867,7 @@ class SpreadStrategyEngine:
 
     def remove_strategy(self, strategy_name: str) -> bool:
         """
-        Remove a strategy.
+        移除策略。
         """
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if strategy.trading:
@@ -884,7 +887,7 @@ class SpreadStrategyEngine:
         return True
 
     def init_strategy(self, strategy_name: str) -> Future:
-        """"""
+        """把策略初始化提交到线程池。"""
         return self.init_executor.submit(self._init_strategy, strategy_name)
 
     def _init_strategy(self, strategy_name: str) -> None:
@@ -902,7 +905,7 @@ class SpreadStrategyEngine:
         self.write_log(f"{strategy_name}初始化完成")
 
     def start_strategy(self, strategy_name: str) -> None:
-        """"""
+        """启动策略；未初始化或已启动时记日志并返回。"""
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if not strategy.inited:
             self.write_log(f"策略{strategy.strategy_name}启动失败，请先初始化")
@@ -918,7 +921,7 @@ class SpreadStrategyEngine:
         self.put_strategy_event(strategy)
 
     def stop_strategy(self, strategy_name: str) -> None:
-        """"""
+        """停止正在交易的策略，并调用其停止全部算法。"""
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
             return
@@ -932,23 +935,23 @@ class SpreadStrategyEngine:
         self.put_strategy_event(strategy)
 
     def init_all_strategies(self) -> None:
-        """"""
+        """初始化全部策略。"""
         for strategy in self.strategies.keys():
             self.init_strategy(strategy)
 
     def start_all_strategies(self) -> None:
-        """"""
+        """启动全部策略。"""
         for strategy in self.strategies.keys():
             self.start_strategy(strategy)
 
     def stop_all_strategies(self) -> None:
-        """"""
+        """停止全部策略。"""
         for strategy in self.strategies.keys():
             self.stop_strategy(strategy)
 
     def get_strategy_class_parameters(self, class_name: str) -> dict:
         """
-        Get default parameters of a strategy class.
+        获取策略类的默认参数。
         """
         strategy_class: type[SpreadStrategyTemplate] = self.classes[class_name]
 
@@ -960,7 +963,7 @@ class SpreadStrategyEngine:
 
     def get_strategy_parameters(self, strategy_name: str) -> dict:
         """
-        Get parameters of a strategy.
+        获取策略参数。
         """
         strategy: SpreadStrategyTemplate = self.strategies[strategy_name]
         return strategy.get_parameters()
@@ -977,7 +980,7 @@ class SpreadStrategyEngine:
         lock: bool,
         extra: dict
     ) -> str:
-        """"""
+        """启动算法并记下它所属的策略。"""
         algoid: str = self.spread_engine.start_algo(
             spread_name,
             direction,
@@ -994,27 +997,27 @@ class SpreadStrategyEngine:
         return algoid
 
     def stop_algo(self, strategy: SpreadStrategyTemplate, algoid: str) -> None:
-        """"""
+        """停止指定算法。"""
         self.spread_engine.stop_algo(algoid)
 
     def stop_all_algos(self, strategy: SpreadStrategyTemplate) -> None:
-        """"""
+        """不执行任何操作。"""
         pass
 
     def put_strategy_event(self, strategy: SpreadStrategyTemplate) -> None:
-        """"""
+        """推送策略数据事件。"""
         data: dict = strategy.get_data()
         event: Event = Event(EVENT_SPREAD_STRATEGY, data)
         self.event_engine.put(event)
 
     def write_strategy_log(self, strategy: SpreadStrategyTemplate, msg: str) -> None:
-        """"""
+        """写入带策略名前缀的日志。"""
         msg = f"{strategy.strategy_name}：{msg}"
         self.write_log(msg)
 
     def send_notification(self, msg: str, strategy: SpreadStrategyTemplate | None = None) -> None:
         """
-        Push notification through all configured channels.
+        通过全部已配置通道推送通知。
         """
         if strategy:
             subject: str = f"{strategy.strategy_name}"
@@ -1024,13 +1027,13 @@ class SpreadStrategyEngine:
         self.main_engine.send_notification(msg, subject)
 
     def get_engine_type(self) -> EngineType:
-        """"""
+        """返回引擎类型。"""
         return self.engine_type
 
     def load_bar(
         self, spread: SpreadData, days: int, interval: Interval, callback: Callable
     ) -> None:
-        """"""
+        """从当前时间往前加载给定天数的价差K线，并逐根回调。"""
         end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
@@ -1040,7 +1043,7 @@ class SpreadStrategyEngine:
             callback(bar)
 
     def load_tick(self, spread: SpreadData, days: int, callback: Callable) -> None:
-        """"""
+        """从当前时间往前加载给定天数的价差Tick，并逐笔回调。"""
         end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 

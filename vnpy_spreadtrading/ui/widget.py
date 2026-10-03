@@ -34,10 +34,10 @@ def _get_spread_engine(main_engine: MainEngine) -> SpreadEngine:
 
 
 class SpreadManager(QtWidgets.QWidget):
-    """"""
+    """价差交易主界面。"""
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """保存引擎并初始化界面。"""
         super().__init__()
 
         self.main_engine: MainEngine = main_engine
@@ -48,7 +48,7 @@ class SpreadManager(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """创建交易、价差、日志、算法和策略区域。"""
         self.setWindowTitle("价差交易")
 
         self.algo_dialog: SpreadAlgoWidget = SpreadAlgoWidget(self.spread_engine)
@@ -86,13 +86,13 @@ class SpreadManager(QtWidgets.QWidget):
         self.setLayout(hbox)
 
     def show(self) -> None:
-        """"""
+        """启动价差引擎、刷新策略类下拉框并最大化窗口。"""
         self.spread_engine.start()
         self.algo_dialog.update_class_combo()
         self.showMaximized()
 
     def create_group(self, title: str, widget: QtWidgets.QWidget) -> QtWidgets.QGroupBox:
-        """"""
+        """把控件放进带标题的分组框。"""
         group: QtWidgets.QGroupBox = QtWidgets.QGroupBox()
 
         vbox: QtWidgets.QVBoxLayout = QtWidgets.QVBoxLayout()
@@ -140,7 +140,7 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
     signal: QtCore.Signal = QtCore.Signal(Event)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """保存引擎、初始化界面并注册事件。"""
         super().__init__()
 
         self.main_engine: MainEngine = main_engine
@@ -150,17 +150,17 @@ class SpreadLogMonitor(QtWidgets.QTextEdit):
         self.register_event()
 
     def init_ui(self) -> None:
-        """"""
+        """将日志框设为只读。"""
         self.setReadOnly(True)
 
     def register_event(self) -> None:
-        """"""
+        """把日志信号接到处理函数，并注册价差日志事件。"""
         self.signal.connect(self.process_log_event)
 
         self.event_engine.register(EVENT_SPREAD_LOG, self.signal.emit)
 
     def process_log_event(self, event: Event) -> None:
-        """"""
+        """把日志时间和内容追加到文本框。"""
         log: LogData = event.data
         msg: str = f"{log.time.strftime('%H:%M:%S')}\t{log.msg}"
         self.append(msg)
@@ -190,7 +190,7 @@ class SpreadAlgoMonitor(BaseMonitor):
     }
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """初始化监控表格并取得价差引擎。"""
         super().__init__(main_engine, event_engine)
 
         self.spread_engine: SpreadEngine = _get_spread_engine(main_engine)
@@ -213,10 +213,10 @@ class SpreadAlgoMonitor(BaseMonitor):
 
 
 class SpreadAlgoWidget(QtWidgets.QFrame):
-    """"""
+    """算法启动以及策略、价差操作面板。"""
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """保存引擎并初始化界面。"""
         super().__init__()
 
         self.spread_engine: SpreadEngine = spread_engine
@@ -225,7 +225,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """创建算法参数、策略批量按钮和价差增删按钮。"""
         self.setWindowTitle("启动算法")
         self.setFrameShape(self.Shape.Box)
         self.setLineWidth(1)
@@ -306,7 +306,7 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         self.setLayout(vbox)
 
     def start_algo(self) -> None:
-        """"""
+        """价格、数量、超价或间隔为空时提示并返回，否则按净仓或锁仓启动算法。"""
         lock_str: str = self.mode_combo.currentText()
         if lock_str == "锁仓":
             lock: bool = True
@@ -345,24 +345,24 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         )
 
     def add_spread(self) -> None:
-        """"""
+        """弹出创建价差对话框。"""
         dialog: SpreadDataDialog = SpreadDataDialog(self.spread_engine)
         dialog.exec_()
 
     def remove_spread(self) -> None:
-        """"""
+        """弹出移除价差对话框。"""
         dialog: SpreadRemoveDialog = SpreadRemoveDialog(self.spread_engine)
         dialog.exec_()
 
     def update_class_combo(self) -> None:
-        """"""
+        """用全部策略类名刷新下拉框。"""
         self.class_combo.clear()
         self.class_combo.addItems(
             self.spread_engine.get_all_strategy_class_names()
         )
 
     def add_strategy(self) -> None:
-        """"""
+        """未选择策略类时返回；对话框接受后用填写的名称和参数添加策略。"""
         class_name: str = str(self.class_combo.currentText())
         if not class_name:
             return
@@ -383,10 +383,10 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
 
 
 class SpreadRemoveDialog(QtWidgets.QDialog):
-    """"""
+    """移除价差的对话框。"""
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """保存引擎并初始化界面。"""
         super().__init__()
 
         self.spread_engine: SpreadEngine = spread_engine
@@ -394,7 +394,7 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """列出已有价差并提供移除按钮。"""
         self.setWindowTitle("移除价差")
         self.setMinimumWidth(300)
 
@@ -412,18 +412,19 @@ class SpreadRemoveDialog(QtWidgets.QDialog):
         self.setLayout(hbox)
 
     def remove_spread(self) -> None:
-        """"""
+        """移除当前选中的价差并关闭对话框。"""
         spread_name: str = self.name_combo.currentText()
         self.spread_engine.remove_spread(spread_name)
         self.accept()
 
 
 class SpreadStrategyMonitor(QtWidgets.QWidget):
-    """"""
+    """价差策略列表。"""
 
     signal_strategy: QtCore.Signal = QtCore.Signal(Event)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
+        """保存引擎、创建滚动区域并注册策略事件。"""
         super().__init__()
 
         self.main_engine: MainEngine = main_engine
@@ -437,7 +438,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
         self.register_event()
 
     def init_ui(self) -> None:
-        """"""
+        """创建可滚动的策略列表区域。"""
         self.scroll_layout: QtWidgets.QVBoxLayout = QtWidgets.QVBoxLayout()
         self.scroll_layout.addStretch()
 
@@ -453,7 +454,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
         self.setLayout(vbox)
 
     def register_event(self) -> None:
-        """"""
+        """把策略信号接到处理函数，并注册价差策略事件。"""
         self.signal_strategy.connect(self.process_strategy_event)
 
         self.event_engine.register(
@@ -476,7 +477,7 @@ class SpreadStrategyMonitor(QtWidgets.QWidget):
             self.managers[strategy_name] = manager
 
     def remove_strategy(self, strategy_name: str) -> None:
-        """"""
+        """销毁并移除对应的策略控件。"""
         manager: SpreadStrategyWidget = self.managers.pop(strategy_name)
         manager.deleteLater()
 
@@ -492,7 +493,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
         spread_engine: SpreadEngine,
         data: dict
     ) -> None:
-        """"""
+        """保存策略数据并初始化界面。"""
         super().__init__()
 
         self.strategy_monitor: SpreadStrategyMonitor = strategy_monitor
@@ -504,7 +505,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """创建启停编辑按钮以及参数和变量表。"""
         self.setFixedHeight(300)
         self.setFrameShape(self.Shape.Box)
         self.setLineWidth(1)
@@ -553,26 +554,26 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
         self.setLayout(vbox)
 
     def update_data(self, data: dict) -> None:
-        """"""
+        """用新数据刷新参数表和变量表。"""
         self._data = data
 
         self.parameters_monitor.update_data(data["parameters"])
         self.variables_monitor.update_data(data["variables"])
 
     def init_strategy(self) -> None:
-        """"""
+        """初始化该策略。"""
         self.spread_engine.init_strategy(self.strategy_name)
 
     def start_strategy(self) -> None:
-        """"""
+        """启动该策略。"""
         self.spread_engine.start_strategy(self.strategy_name)
 
     def stop_strategy(self) -> None:
-        """"""
+        """停止该策略。"""
         self.spread_engine.stop_strategy(self.strategy_name)
 
     def edit_strategy(self) -> None:
-        """"""
+        """对话框确认后把参数写回策略。"""
         strategy_name: str = self._data["strategy_name"]
 
         parameters: dict = self.spread_engine.get_strategy_parameters(
@@ -585,7 +586,7 @@ class SpreadStrategyWidget(QtWidgets.QFrame):
             self.spread_engine.edit_strategy(strategy_name, setting)
 
     def remove_strategy(self) -> None:
-        """"""
+        """从引擎移除策略，成功后再从界面移除。"""
         result: bool = self.spread_engine.remove_strategy(self.strategy_name)
 
         # Only remove strategy gui manager if it has been removed from engine
@@ -599,7 +600,7 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
     """
 
     def __init__(self, data: dict) -> None:
-        """"""
+        """保存数据并初始化表格。"""
         super().__init__()
 
         self._data: dict = data
@@ -608,7 +609,7 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """按数据的键生成一行不可编辑的表格。"""
         labels: list = list(self._data.keys())
         self.setColumnCount(len(labels))
         self.setHorizontalHeaderLabels(labels)
@@ -630,7 +631,7 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
             self.cells[name] = cell
 
     def update_data(self, data: dict) -> None:
-        """"""
+        """按字段名更新单元格文本。"""
         for name, value in data.items():
             cell: QtWidgets.QTableWidgetItem = self.cells[name]
             cell.setText(str(value))
@@ -644,7 +645,7 @@ class SettingEditor(QtWidgets.QDialog):
     def __init__(
         self, parameters: dict, strategy_name: str = "", class_name: str = ""
     ) -> None:
-        """"""
+        """保存参数、策略名和类名，并初始化界面。"""
         super().__init__()
 
         self.parameters: dict = parameters
@@ -656,7 +657,7 @@ class SettingEditor(QtWidgets.QDialog):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """按参数类型生成输入框；新建策略时增加策略名和价差名。"""
         form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
 
         # Add spread_name and name edit if add new strategy
@@ -692,7 +693,7 @@ class SettingEditor(QtWidgets.QDialog):
         self.setLayout(form)
 
     def get_setting(self) -> dict:
-        """"""
+        """把输入按原类型转换后返回；布尔文本只有 True 时为真。"""
         setting: dict = {}
 
         if self.class_name:
@@ -716,10 +717,10 @@ class SettingEditor(QtWidgets.QDialog):
 
 
 class SpreadDataDialog(QtWidgets.QDialog):
-    """"""
+    """创建价差的对话框。"""
 
     def __init__(self, spread_engine: SpreadEngine) -> None:
-        """"""
+        """保存引擎并初始化界面。"""
         super().__init__()
 
         self.spread_engine: SpreadEngine = spread_engine
@@ -729,7 +730,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """创建名称、主动腿、最小交易量、价格公式和 A 到 E 五条腿的输入。"""
         self.setWindowTitle("创建价差")
 
         self.name_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
@@ -802,7 +803,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         self.setLayout(grid)
 
     def add_spread(self) -> None:
-        """"""
+        """名称、公式、腿数量或主动腿不通过校验时提示并返回，否则创建价差并关闭对话框。"""
         spread_name: str = self.name_line.text()
         if not spread_name:
             QtWidgets.QMessageBox.warning(
@@ -875,7 +876,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         self.accept()
 
     def check_formula(self, formula: str) -> bool:
-        """"""
+        """将 A 到 E 都设为 1 后求值公式，成功返回 True，异常返回 False。"""
         data: dict = {variable: 1 for variable in "ABCDE"}
 
         try:

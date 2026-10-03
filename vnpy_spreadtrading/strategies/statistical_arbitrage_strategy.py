@@ -1,3 +1,5 @@
+"""统计套利价差策略。"""
+
 from vnpy.trader.utility import BarGenerator, ArrayManager
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
@@ -8,7 +10,7 @@ from vnpy_spreadtrading import (
 
 
 class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
-    """"""
+    """用布林带开平价差仓位。"""
 
     author = "用Python的交易员"
 
@@ -39,7 +41,7 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
     def on_init(self) -> None:
         """
-        Callback when strategy is inited.
+        策略初始化完成时的回调。
         """
         self.write_log("策略初始化")
 
@@ -50,13 +52,13 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
     def on_start(self) -> None:
         """
-        Callback when strategy is started.
+        策略启动时的回调。
         """
         self.write_log("策略启动")
 
     def on_stop(self) -> None:
         """
-        Callback when strategy is stopped.
+        策略停止时的回调。
         """
         self.write_log("策略停止")
 
@@ -64,20 +66,20 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
     def on_spread_data(self) -> None:
         """
-        Callback when spread price is updated.
+        价差价格更新时的回调。
         """
         tick = self.get_spread_tick()
         self.on_spread_tick(tick)
 
     def on_spread_tick(self, tick: TickData) -> None:
         """
-        Callback when new spread tick data is generated.
+        生成新的价差 Tick 时的回调。
         """
         self.bg.update_tick(tick)
 
     def on_spread_bar(self, bar: BarData) -> None:
         """
-        Callback when spread bar data is generated.
+        生成价差 K 线数据时的回调。
         """
         self.stop_all_algos()
 
@@ -125,13 +127,13 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
 
     def on_spread_pos(self) -> None:
         """
-        Callback when spread position is updated.
+        价差持仓更新时的回调。
         """
         self.spread_pos = self.get_spread_pos()
         self.put_event()
 
     def on_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """
-        Callback when algo status is updated.
+        算法状态更新时的回调。
         """
         pass

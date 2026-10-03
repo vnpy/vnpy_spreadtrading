@@ -1,3 +1,5 @@
+"""启动价差交易图形界面的脚本。"""
+
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
@@ -7,7 +9,7 @@ from vnpy_spreadtrading import SpreadTradingApp
 
 
 def main():
-    """主入口函数"""
+    """主入口函数。"""
     qapp = create_qapp()
 
     event_engine = EventEngine()

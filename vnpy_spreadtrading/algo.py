@@ -1,3 +1,5 @@
+"""价差吃单算法。"""
+
 from typing import TYPE_CHECKING
 
 from vnpy.trader.constant import Direction
@@ -12,14 +14,14 @@ if TYPE_CHECKING:
 
 
 def round_leg_volume(leg: LegData, volume: float) -> float:
-    """"""
+    """有最小交易量时按其取整，否则返回原数量。"""
     if leg.min_volume:
         return round_to(volume, leg.min_volume)
     return volume
 
 
 class SpreadTakerAlgo(SpreadAlgoTemplate):
-    """"""
+    """主动腿吃单并对冲被动腿的算法。"""
     algo_name: str = "SpreadTaker"
 
     def __init__(
@@ -35,7 +37,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         lock: bool,
         extra: dict
     ) -> None:
-        """"""
+        """调用父类完成初始化。"""
         super().__init__(
             algo_engine,
             algoid,
@@ -50,7 +52,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         )
 
     def on_tick(self, tick: TickData) -> None:
-        """"""
+        """委托未结束时返回；未对冲完则对冲被动腿；盘口量为空时返回；价格达到时吃主动腿。"""
         # Return if there are any existing orders
         if not self.is_order_finished():
             return
@@ -73,7 +75,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
                 self.take_active_leg()
 
     def on_order(self, order: OrderData) -> None:
-        """"""
+        """非主动腿委托直接返回；主动腿委托全部结束后，未对冲完则对冲被动腿。"""
         # Only care active leg order update
         if order.vt_symbol != self.spread.active_leg.vt_symbol:
             return
@@ -87,16 +89,16 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
             self.hedge_passive_legs()
 
     def on_trade(self, trade: TradeData) -> None:
-        """"""
+        """不执行任何操作。"""
         pass
 
     def on_interval(self) -> None:
-        """"""
+        """仍有未完成委托时撤销全部委托。"""
         if not self.is_order_finished():
             self.cancel_all_order()
 
     def take_active_leg(self) -> None:
-        """"""
+        """按剩余目标和盘口量限制主动腿委托数量后发送。"""
         active_symbol: str = self.spread.active_leg.vt_symbol
 
         # Calculate spread order volume of new round trade
@@ -137,7 +139,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
 
     def hedge_passive_legs(self) -> None:
         """
-        Send orders to hedge all passive legs.
+        发送委托以对冲全部被动腿。
         """
         # Calcualte spread volume to hedge
         active_leg: LegData = self.spread.active_leg
@@ -164,7 +166,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
                 self.send_leg_order(leg.vt_symbol, leg_order_volume)
 
     def send_leg_order(self, vt_symbol: str, leg_volume: float) -> None:
-        """"""
+        """有行情和合约时，正数量按卖一加超价买入，负数量按买一减超价卖出。"""
         leg: LegData = self.spread.legs[vt_symbol]
         leg_tick: TickData | None = self.get_tick(vt_symbol)
         leg_contract: ContractData | None = self.get_contract(vt_symbol)

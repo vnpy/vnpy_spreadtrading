@@ -1,3 +1,5 @@
+"""基础价差策略。"""
+
 from datetime import datetime
 
 from vnpy_spreadtrading import (
@@ -7,7 +9,7 @@ from vnpy_spreadtrading import (
 
 
 class BasicSpreadStrategy(SpreadStrategyTemplate):
-    """"""
+    """在起止时间内按目标价维护开平仓算法。"""
 
     author = "用Python的交易员"
 
@@ -48,7 +50,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
     def on_init(self) -> None:
         """
-        Callback when strategy is inited.
+        策略初始化完成时的回调。
         """
         self.write_log("策略初始化")
 
@@ -57,13 +59,13 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
     def on_start(self) -> None:
         """
-        Callback when strategy is started.
+        策略启动时的回调。
         """
         self.write_log("策略启动")
 
     def on_stop(self) -> None:
         """
-        Callback when strategy is stopped.
+        策略停止时的回调。
         """
         self.write_log("策略停止")
 
@@ -76,7 +78,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
     def on_spread_data(self) -> None:
         """
-        Callback when spread price is updated.
+        价差价格更新时的回调。
         """
         # Trading is only allowed within given start/end time range
         self.update_time = self.spread.datetime.time()
@@ -128,14 +130,14 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
 
     def on_spread_pos(self) -> None:
         """
-        Callback when spread position is updated.
+        价差持仓更新时的回调。
         """
         self.spread_pos = self.get_spread_pos()
         self.put_event()
 
     def on_spread_algo(self, algo: SpreadAlgoTemplate) -> None:
         """
-        Callback when algo status is updated.
+        算法状态更新时的回调。
         """
         if not algo.is_active():
             if self.buy_algoid == algo.algoid:
@@ -150,7 +152,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         self.put_event()
 
     def stop_open_algos(self) -> None:
-        """"""
+        """停止已记录的买入和卖空算法。"""
         if self.buy_algoid:
             self.stop_algo(self.buy_algoid)
 
@@ -158,7 +160,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
             self.stop_algo(self.short_algoid)
 
     def stop_close_algos(self) -> None:
-        """"""
+        """停止已记录的卖出和补平算法。"""
         if self.sell_algoid:
             self.stop_algo(self.sell_algoid)
 

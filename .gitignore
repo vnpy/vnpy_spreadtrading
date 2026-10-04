@@ -130,3 +130,6 @@ dmypy.json
 
 # Project
 .vscode/
+
+# Type checker / linter / test caches
+.ruff_cache/

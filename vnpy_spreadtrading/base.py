@@ -18,13 +18,13 @@ from vnpy.trader.database import BaseDatabase, get_database
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
-EVENT_SPREAD_DATA = "eSpreadData"
-EVENT_SPREAD_POS = "eSpreadPos"
-EVENT_SPREAD_LOG = "eSpreadLog"
-EVENT_SPREAD_ALGO = "eSpreadAlgo"
-EVENT_SPREAD_STRATEGY = "eSpreadStrategy"
+EVENT_SPREAD_DATA: str = "eSpreadData"
+EVENT_SPREAD_POS: str = "eSpreadPos"
+EVENT_SPREAD_LOG: str = "eSpreadLog"
+EVENT_SPREAD_ALGO: str = "eSpreadAlgo"
+EVENT_SPREAD_STRATEGY: str = "eSpreadStrategy"
 
-LOCAL_TZ = ZoneInfo(get_localzone_name())
+LOCAL_TZ: ZoneInfo = ZoneInfo(get_localzone_name())
 
 
 class LegData:
@@ -96,7 +96,7 @@ class LegData:
                 new_pos: float = self.net_pos + trade.volume
 
                 if self.net_pos >= 0:
-                    new_cost = old_cost + trade_cost
+                    new_cost: float = old_cost + trade_cost
                     self.net_pos_price = new_cost / new_pos
                 else:
                     # If all previous short position closed
@@ -167,6 +167,7 @@ class SpreadData:
         self.price_formula: str = ""
         self.trading_formula: str = ""
 
+        leg: LegData
         for leg in legs:
             self.legs[leg.vt_symbol] = leg
             if leg.vt_symbol == active_symbol:
@@ -212,6 +213,8 @@ class SpreadData:
             self.price_code = price_formula
 
         self.variable_legs: dict[str, LegData] = {}
+        variable: str
+        vt_symbol: str
         for variable, vt_symbol in variable_symbols.items():
             leg = self.legs[vt_symbol]
             self.variable_legs[variable] = leg
@@ -230,6 +233,8 @@ class SpreadData:
         ask_data: dict = {}
         volume_inited: bool = False
 
+        variable: str
+        leg: LegData
         for variable, leg in self.variable_legs.items():
             # Filter not all leg price data has been received
             if not leg.bid_volume or not leg.ask_volume:
@@ -311,6 +316,7 @@ class SpreadData:
         short_pos: float = 0
         pos_inited: bool = False
 
+        leg: LegData
         for leg in self.legs.values():
             leg_long_pos: float = 0
             leg_short_pos: float = 0
@@ -319,8 +325,8 @@ class SpreadData:
             if not trading_multiplier:
                 continue
 
-            net_pos = self.leg_pos[leg.vt_symbol]
-            adjusted_net_pos = decimal_divide(net_pos, trading_multiplier)
+            net_pos: float = self.leg_pos[leg.vt_symbol]
+            adjusted_net_pos: float = decimal_divide(net_pos, trading_multiplier)
 
             if adjusted_net_pos > 0:
                 adjusted_net_pos = floor_to(adjusted_net_pos, self.min_volume)
@@ -391,7 +397,7 @@ class SpreadData:
 
     def parse_formula(self, formula: CodeType | str, data: dict[str, float]) -> float:
         """在空内置命名空间中求值公式，结果不是数字时抛出 ValueError。"""
-        value = eval(formula, {"__builtins__": {}}, data)
+        value: object = eval(formula, {"__builtins__": {}}, data)
         if not isinstance(value, int | float):
             raise ValueError(f"Formula must return number, got {type(value).__name__}")
         return float(value)
@@ -439,7 +445,10 @@ def load_bar_data(
     # Load bar data of each spread leg
     leg_bars: dict[str, dict] = {}
 
+    vt_symbol: str
     for vt_symbol in spread.legs.keys():
+        symbol: str
+        exchange: Exchange
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
         # 初始化K线列表
@@ -463,12 +472,15 @@ def load_bar_data(
     # Calculate spread bar data
     spread_bars: list[BarData] = []
 
+    dt: datetime
     for dt in bars.keys():
         spread_price: float = 0
         spread_value: float = 0
         spread_available: bool = True
 
         leg_data: dict = {}
+        variable: str
+        leg: LegData
         for variable, leg in spread.variable_legs.items():
             leg_bar: BarData | None = leg_bars[leg.vt_symbol].get(dt, None)
 

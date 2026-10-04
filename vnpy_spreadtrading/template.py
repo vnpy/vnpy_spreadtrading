@@ -137,7 +137,7 @@ class SpreadAlgoTemplate:
         self.lock: bool = lock
 
         if direction == Direction.LONG:
-            self.target = volume
+            self.target: float = volume
         else:
             self.target = -volume
 
@@ -185,6 +185,7 @@ class SpreadAlgoTemplate:
         """检查委托是否全部结束。"""
         finished: bool = True
 
+        leg: LegData
         for leg in self.spread.legs.values():
             vt_orderids: list = self.leg_orders[leg.vt_symbol]
 
@@ -205,6 +206,7 @@ class SpreadAlgoTemplate:
 
         finished: bool = True
 
+        leg: LegData
         for leg in self.spread.passive_legs:
             passive_symbol: str = leg.vt_symbol
 
@@ -373,11 +375,13 @@ class SpreadAlgoTemplate:
 
     def cancel_leg_order(self, vt_symbol: str) -> None:
         """撤销指定腿上的委托。"""
+        vt_orderid: str
         for vt_orderid in self.leg_orders[vt_symbol]:
             self.algo_engine.cancel_order(self, vt_orderid)
 
     def cancel_all_order(self) -> None:
         """撤销全部腿上的委托。"""
+        vt_symbol: str
         for vt_symbol in self.leg_orders.keys():
             self.cancel_leg_order(vt_symbol)
 
@@ -387,6 +391,7 @@ class SpreadAlgoTemplate:
         spread: SpreadData = self.spread
 
         n: int = 0
+        leg: LegData
         for leg in spread.legs.values():
             leg_traded: float = self.leg_traded[leg.vt_symbol]
             trading_multiplier: int = spread.trading_multipliers[leg.vt_symbol]
@@ -430,6 +435,8 @@ class SpreadAlgoTemplate:
 
         data: dict = {}
 
+        variable: str
+        vt_symbol: str
         for variable, vt_symbol in spread.variable_symbols.items():
             leg: LegData = spread.legs[vt_symbol]
             trading_multiplier: int = spread.trading_multipliers[leg.vt_symbol]
@@ -519,6 +526,7 @@ class SpreadStrategyTemplate:
         """
         用配置字典中的值更新策略参数。
         """
+        name: str
         for name in self.parameters:
             if name in setting:
                 setattr(self, name, setting[name])
@@ -529,6 +537,7 @@ class SpreadStrategyTemplate:
         获取策略类的默认参数字典。
         """
         class_parameters: dict = {}
+        name: str
         for name in cls.parameters:
             class_parameters[name] = getattr(cls, name)
         return class_parameters
@@ -538,6 +547,7 @@ class SpreadStrategyTemplate:
         获取策略参数字典。
         """
         strategy_parameters: dict = {}
+        name: str
         for name in self.parameters:
             strategy_parameters[name] = getattr(self, name)
         return strategy_parameters
@@ -547,6 +557,7 @@ class SpreadStrategyTemplate:
         获取策略变量字典。
         """
         strategy_variables: dict = {}
+        name: str
         for name in self.variables:
             strategy_variables[name] = getattr(self, name)
         return strategy_variables
@@ -705,6 +716,7 @@ class SpreadStrategyTemplate:
 
     def stop_all_algos(self) -> None:
         """停止当前记录的全部算法。"""
+        algoid: str
         for algoid in list(self.algoids):
             self.stop_algo(algoid)
 
@@ -758,7 +770,7 @@ class SpreadStrategyTemplate:
         if self.inited:
             self.strategy_engine.send_notification(msg, self)
 
-    send_email = send_notification
+    send_email: Callable[["SpreadStrategyTemplate", str], None] = send_notification
 
     def load_bar(
         self,

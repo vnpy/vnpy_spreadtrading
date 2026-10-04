@@ -3,7 +3,7 @@ Widget for spread trading.
 """
 
 from vnpy.event import EventEngine, Event
-from vnpy.trader.engine import MainEngine
+from vnpy.trader.engine import MainEngine, BaseEngine
 from vnpy.trader.object import LogData
 from vnpy.trader.constant import Direction
 from vnpy.trader.ui import QtWidgets, QtCore, QtGui
@@ -14,6 +14,7 @@ from vnpy.trader.ui.widget import (
     DirectionCell, EnumCell,
 )
 
+from ..base import AlgoItem
 from ..engine import (
     SpreadEngine,
     SpreadStrategyEngine,
@@ -27,7 +28,7 @@ from ..engine import (
 
 
 def _get_spread_engine(main_engine: MainEngine) -> SpreadEngine:
-    engine = main_engine.get_engine(APP_NAME)
+    engine: BaseEngine | None = main_engine.get_engine(APP_NAME)
     if not isinstance(engine, SpreadEngine):
         raise RuntimeError("SpreadEngine not found")
     return engine
@@ -208,7 +209,7 @@ class SpreadAlgoMonitor(BaseMonitor):
         """
         Stop algo if cell double clicked.
         """
-        algo = cell.get_data()
+        algo: AlgoItem = cell.get_data()
         self.spread_engine.stop_algo(algo.algoid)
 
 
@@ -313,11 +314,13 @@ class SpreadAlgoWidget(QtWidgets.QFrame):
         else:
             lock = False
 
-        price_text = self.price_line.text()
-        volume_text = self.volume_line.text()
-        payup_text = self.payup_line.text()
-        interval_text = self.interval_line.text()
+        price_text: str = self.price_line.text()
+        volume_text: str = self.volume_line.text()
+        payup_text: str = self.payup_line.text()
+        interval_text: str = self.interval_line.text()
 
+        text: str
+        name: str
         for text, name in [
             (price_text, "价格"),
             (volume_text, "数量"),
@@ -621,8 +624,10 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(self.EditTrigger.NoEditTriggers)
 
+        column: int
+        name: str
         for column, name in enumerate(self._data.keys()):
-            value = self._data[name]
+            value: object = self._data[name]
 
             cell: QtWidgets.QTableWidgetItem = QtWidgets.QTableWidgetItem(str(value))
             cell.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -632,6 +637,8 @@ class StrategyDataMonitor(QtWidgets.QTableWidget):
 
     def update_data(self, data: dict) -> None:
         """按字段名更新单元格文本。"""
+        name: str
+        value: object
         for name, value in data.items():
             cell: QtWidgets.QTableWidgetItem = self.cells[name]
             cell.setText(str(value))
@@ -671,8 +678,10 @@ class SettingEditor(QtWidgets.QDialog):
             button_text = "确定"
             parameters = self.parameters
 
+        name: str
+        value: object
         for name, value in parameters.items():
-            type_ = type(value)
+            type_: type = type(value)
 
             edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit(str(value))
             if type_ is int:
@@ -699,9 +708,13 @@ class SettingEditor(QtWidgets.QDialog):
         if self.class_name:
             setting["class_name"] = self.class_name
 
+        name: str
+        tp: tuple[QtWidgets.QLineEdit, type]
         for name, tp in self.edits.items():
+            edit: QtWidgets.QLineEdit
+            type_: type
             edit, type_ = tp
-            value_text = edit.text()
+            value_text: str = edit.text()
 
             if type_ is bool:
                 if value_text == "True":
@@ -775,6 +788,8 @@ class SpreadDataDialog(QtWidgets.QDialog):
 
         leg_count: int = 5
         variables: list = ["A", "B", "C", "D", "E"]
+        i: int
+        variable: str
         for i, variable in enumerate(variables):
             symbol_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
@@ -828,6 +843,7 @@ class SpreadDataDialog(QtWidgets.QDialog):
         min_volume: float = float(self.min_volume_combo.currentText())
 
         leg_settings: dict = {}
+        d: dict
         for d in self.leg_widgets:
             try:
                 vt_symbol: str = d["symbol"].text()

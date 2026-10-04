@@ -152,6 +152,7 @@ class SpreadTakerAlgo(SpreadAlgoTemplate):
         )
 
         # Calculate passive leg target volume and do hedge
+        leg: LegData
         for leg in self.spread.passive_legs:
             passive_traded: float = self.leg_traded[leg.vt_symbol]
             passive_traded = round_leg_volume(leg, passive_traded)

@@ -1,6 +1,6 @@
 """基础价差策略。"""
 
-from datetime import datetime
+from datetime import datetime, time
 
 from vnpy_spreadtrading import (
     SpreadStrategyTemplate,
@@ -11,26 +11,26 @@ from vnpy_spreadtrading import (
 class BasicSpreadStrategy(SpreadStrategyTemplate):
     """在起止时间内按目标价维护开平仓算法。"""
 
-    author = "用Python的交易员"
+    author: str = "用Python的交易员"
 
-    buy_price = 0.0
-    sell_price = 0.0
-    cover_price = 0.0
-    short_price = 0.0
-    max_pos = 0.0
-    payup = 10
-    interval = 5
-    start_time = "9:00:00"
-    end_time = "15:00:00"
+    buy_price: float = 0.0
+    sell_price: float = 0.0
+    cover_price: float = 0.0
+    short_price: float = 0.0
+    max_pos: float = 0.0
+    payup: int = 10
+    interval: int = 5
+    start_time: str = "9:00:00"
+    end_time: str = "15:00:00"
 
-    spread_pos = 0.0
-    update_time = None
-    buy_algoid = ""
-    sell_algoid = ""
-    short_algoid = ""
-    cover_algoid = ""
+    spread_pos: float = 0.0
+    update_time: time | None = None
+    buy_algoid: str = ""
+    sell_algoid: str = ""
+    short_algoid: str = ""
+    cover_algoid: str = ""
 
-    parameters = [
+    parameters: list[str] = [
         "buy_price",
         "sell_price",
         "cover_price",
@@ -39,7 +39,7 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         "payup",
         "interval"
     ]
-    variables = [
+    variables: list[str] = [
         "spread_pos",
         "update_time",
         "buy_algoid",
@@ -54,8 +54,8 @@ class BasicSpreadStrategy(SpreadStrategyTemplate):
         """
         self.write_log("策略初始化")
 
-        self.start_t = datetime.strptime(self.start_time, "%H:%M:%S").time()
-        self.end_t = datetime.strptime(self.end_time, "%H:%M:%S").time()
+        self.start_t: time = datetime.strptime(self.start_time, "%H:%M:%S").time()
+        self.end_t: time = datetime.strptime(self.end_time, "%H:%M:%S").time()
 
     def on_start(self) -> None:
         """

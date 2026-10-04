@@ -41,7 +41,7 @@ from .template import SpreadAlgoTemplate, SpreadStrategyTemplate
 from .algo import SpreadTakerAlgo
 
 
-APP_NAME = "SpreadTrading"
+APP_NAME: str = "SpreadTrading"
 
 
 def _save_json(filename: str, data: Any) -> None:
@@ -58,7 +58,7 @@ class SpreadEngine(BaseEngine):
 
         self.active: bool = False
 
-        log_engine = self.main_engine.get_engine("log")
+        log_engine: BaseEngine | None = self.main_engine.get_engine("log")
         if not isinstance(log_engine, LogEngine):
             raise RuntimeError("LogEngine not found")
         log_engine.register_log(EVENT_SPREAD_LOG)
@@ -71,34 +71,34 @@ class SpreadEngine(BaseEngine):
         """初始化数据引擎。"""
         self.data_engine: SpreadDataEngine = SpreadDataEngine(self)
 
-        self.add_spread = self.data_engine.add_spread
-        self.remove_spread = self.data_engine.remove_spread
-        self.get_spread = self.data_engine.get_spread
-        self.get_all_spread_names = self.data_engine.get_all_spread_names
+        self.add_spread: Callable[..., None] = self.data_engine.add_spread
+        self.remove_spread: Callable[[str], None] = self.data_engine.remove_spread
+        self.get_spread: Callable[[str], SpreadData | None] = self.data_engine.get_spread
+        self.get_all_spread_names: Callable[[], list[str]] = self.data_engine.get_all_spread_names
 
     def init_algo_engine(self) -> None:
         """初始化算法引擎。"""
         self.algo_engine: SpreadAlgoEngine = SpreadAlgoEngine(self)
 
-        self.start_algo = self.algo_engine.start_algo
-        self.stop_algo = self.algo_engine.stop_algo
+        self.start_algo: Callable[..., str] = self.algo_engine.start_algo
+        self.stop_algo: Callable[[str], None] = self.algo_engine.stop_algo
 
     def init_strategy_engine(self) -> None:
         """初始化策略引擎。"""
         self.strategy_engine: SpreadStrategyEngine = SpreadStrategyEngine(self)
 
-        self.get_all_strategy_class_names = self.strategy_engine.get_all_strategy_class_names
-        self.get_strategy_class_parameters = self.strategy_engine.get_strategy_class_parameters
-        self.init_all_strategies = self.strategy_engine.init_all_strategies
-        self.start_all_strategies = self.strategy_engine.start_all_strategies
-        self.stop_all_strategies = self.strategy_engine.stop_all_strategies
-        self.add_strategy = self.strategy_engine.add_strategy
-        self.init_strategy = self.strategy_engine.init_strategy
-        self.start_strategy = self.strategy_engine.start_strategy
-        self.stop_strategy = self.strategy_engine.stop_strategy
-        self.get_strategy_parameters = self.strategy_engine.get_strategy_parameters
-        self.edit_strategy = self.strategy_engine.edit_strategy
-        self.remove_strategy = self.strategy_engine.remove_strategy
+        self.get_all_strategy_class_names: Callable[[], list] = self.strategy_engine.get_all_strategy_class_names
+        self.get_strategy_class_parameters: Callable[[str], dict] = self.strategy_engine.get_strategy_class_parameters
+        self.init_all_strategies: Callable[[], None] = self.strategy_engine.init_all_strategies
+        self.start_all_strategies: Callable[[], None] = self.strategy_engine.start_all_strategies
+        self.stop_all_strategies: Callable[[], None] = self.strategy_engine.stop_all_strategies
+        self.add_strategy: Callable[[str, str, str, dict], None] = self.strategy_engine.add_strategy
+        self.init_strategy: Callable[[str], Future] = self.strategy_engine.init_strategy
+        self.start_strategy: Callable[[str], None] = self.strategy_engine.start_strategy
+        self.stop_strategy: Callable[[str], None] = self.strategy_engine.stop_strategy
+        self.get_strategy_parameters: Callable[[str], dict] = self.strategy_engine.get_strategy_parameters
+        self.edit_strategy: Callable[[str, dict], None] = self.strategy_engine.edit_strategy
+        self.remove_strategy: Callable[[str], bool] = self.strategy_engine.remove_strategy
 
     def start(self) -> None:
         """已经启动时直接返回，否则启动数据、算法和策略引擎。"""
@@ -150,7 +150,7 @@ class SpreadDataEngine:
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
 
-        self.write_log = spread_engine.write_log
+        self.write_log: Callable[[str], None] = spread_engine.write_log
 
         self.legs: dict[str, LegData] = {}          # vt_symbol: leg
         self.spreads: dict[str, SpreadData] = {}    # name: spread
@@ -175,6 +175,7 @@ class SpreadDataEngine:
         """从配置文件创建价差，且创建时不再写回配置。"""
         setting: dict = load_json(self.setting_filename)
 
+        spread_setting: dict
         for spread_setting in setting:
             self.add_spread(
                 spread_setting["name"],
@@ -189,8 +190,11 @@ class SpreadDataEngine:
         """把当前价差配置写入文件。"""
         setting: list = []
 
+        spread: SpreadData
         for spread in self.spreads.values():
             leg_settings: list = []
+            variable: str
+            vt_symbol: str
             for variable, vt_symbol in spread.variable_symbols.items():
                 trading_direction: int = spread.variable_directions[variable]
                 trading_multiplier: int = spread.trading_multipliers[vt_symbol]
@@ -219,6 +223,7 @@ class SpreadDataEngine:
         """保存价差持仓。"""
         pos_data: dict = {}
 
+        spread: SpreadData
         for spread in self.spreads.values():
             pos_data[spread.name] = spread.leg_pos
 
@@ -228,6 +233,8 @@ class SpreadDataEngine:
         """加载价差持仓。"""
         pos_data: dict = load_json(self.pos_filename)
 
+        name: str
+        leg_pos: dict
         for name, leg_pos in pos_data.items():
             spread: SpreadData | None = self.spreads.get(name, None)
             if spread:
@@ -249,6 +256,7 @@ class SpreadDataEngine:
             return
         leg.update_tick(tick)
 
+        spread: SpreadData
         for spread in self.symbol_spread_map[tick.vt_symbol]:
             # 只有能成功计算出价差盘口时，才会送事件
             if spread.calculate_price():
@@ -263,6 +271,7 @@ class SpreadDataEngine:
             return
         leg.update_position(position)
 
+        spread: SpreadData
         for spread in self.symbol_spread_map[position.vt_symbol]:
             spread.calculate_pos()
             self.put_pos_event(spread)
@@ -333,6 +342,7 @@ class SpreadDataEngine:
 
             # Initialize leg position
             positions: list[PositionData] = self.main_engine.get_all_positions()
+            position: PositionData
             for position in positions:
                 if position.vt_symbol == vt_symbol:
                     leg.update_position(position)
@@ -358,6 +368,7 @@ class SpreadDataEngine:
         variable_directions: dict[str, int] = {}
         trading_multipliers: dict[str, int] = {}
 
+        leg_setting: dict
         for leg_setting in leg_settings:
             vt_symbol: str = leg_setting["vt_symbol"]
             variable: str = leg_setting["variable"]
@@ -396,6 +407,7 @@ class SpreadDataEngine:
 
         spread: SpreadData = self.spreads.pop(name)
 
+        leg: LegData
         for leg in spread.legs.values():
             self.symbol_spread_map[leg.vt_symbol].remove(spread)
 
@@ -427,7 +439,7 @@ class SpreadAlgoEngine:
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
 
-        self.write_log = spread_engine.write_log
+        self.write_log: Callable[[str], None] = spread_engine.write_log
 
         self.spreads: dict[str, SpreadData] = {}
         self.algos: dict[str, SpreadAlgoTemplate] = {}
@@ -446,6 +458,7 @@ class SpreadAlgoEngine:
 
     def stop(self) -> None:
         """停止全部算法。"""
+        algo: str
         for algo in self.algos.keys():
             self.stop_algo(algo)
 
@@ -468,6 +481,7 @@ class SpreadAlgoEngine:
             return
 
         buf: list[SpreadAlgoTemplate] = copy(algos)
+        algo: SpreadAlgoTemplate
         for algo in buf:
             if not algo.is_active():
                 algos.remove(algo)
@@ -499,6 +513,7 @@ class SpreadAlgoEngine:
         """移除已结束的算法，并让活跃算法更新定时器。"""
         buf: list[SpreadAlgoTemplate] = list(self.algos.values())
 
+        algo: SpreadAlgoTemplate
         for algo in buf:
             if not algo.is_active():
                 self.algos.pop(algo.algoid)
@@ -544,6 +559,7 @@ class SpreadAlgoEngine:
         self.algos[algoid] = algo
 
         # Generate map between vt_symbol and algo
+        leg: LegData
         for leg in spread.legs.values():
             self.symbol_algo_map[leg.vt_symbol].append(algo)
 
@@ -622,6 +638,7 @@ class SpreadAlgoEngine:
         # Send Orders
         vt_orderids: list = []
 
+        req: OrderRequest
         for req in req_list:
             vt_orderid: str = self.main_engine.send_order(
                 req, contract.gateway_name)
@@ -674,7 +691,7 @@ class SpreadStrategyEngine:
         self.main_engine: MainEngine = spread_engine.main_engine
         self.event_engine: EventEngine = spread_engine.event_engine
 
-        self.write_log = spread_engine.write_log
+        self.write_log: Callable[[str], None] = spread_engine.write_log
 
         self.strategy_setting: dict = {}
 
@@ -719,10 +736,14 @@ class SpreadStrategyEngine:
         """
         从指定目录加载策略类。
         """
+        _dirpath: str
+        _dirnames: list[str]
+        filenames: list[str]
         for _dirpath, _dirnames, filenames in os.walk(str(path)):
+            filename: str
             for filename in filenames:
                 if filename.split(".")[-1] in ("py", "pyd", "so"):
-                    strategy_module_name = ".".join([module_name, filename.split(".")[0]])
+                    strategy_module_name: str = ".".join([module_name, filename.split(".")[0]])
                     self.load_strategy_class_from_module(strategy_module_name)
 
     def load_strategy_class_from_module(self, module_name: str) -> None:
@@ -732,8 +753,9 @@ class SpreadStrategyEngine:
         try:
             module: ModuleType = importlib.import_module(module_name)
 
+            name: str
             for name in dir(module):
-                value = getattr(module, name)
+                value: object = getattr(module, name)
                 if (isinstance(value, type) and issubclass(value, SpreadStrategyTemplate) and value is not SpreadStrategyTemplate):
                     self.classes[value.__name__] = value
         except:  # noqa
@@ -750,6 +772,8 @@ class SpreadStrategyEngine:
         """
         self.strategy_setting = load_json(self.setting_filename)
 
+        strategy_name: str
+        strategy_config: dict
         for strategy_name, strategy_config in self.strategy_setting.items():
             self.add_strategy(
                 strategy_config["class_name"],
@@ -785,6 +809,7 @@ class SpreadStrategyEngine:
         """向已初始化的策略推送价差数据。"""
         strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
+        strategy: SpreadStrategyTemplate
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_data)
@@ -793,6 +818,7 @@ class SpreadStrategyEngine:
         """向已初始化的策略推送价差持仓。"""
         strategies: list[SpreadStrategyTemplate] = self.spread_strategy_map[spread.name]
 
+        strategy: SpreadStrategyTemplate
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_spread_pos)
@@ -936,16 +962,19 @@ class SpreadStrategyEngine:
 
     def init_all_strategies(self) -> None:
         """初始化全部策略。"""
+        strategy: str
         for strategy in self.strategies.keys():
             self.init_strategy(strategy)
 
     def start_all_strategies(self) -> None:
         """启动全部策略。"""
+        strategy: str
         for strategy in self.strategies.keys():
             self.start_strategy(strategy)
 
     def stop_all_strategies(self) -> None:
         """停止全部策略。"""
+        strategy: str
         for strategy in self.strategies.keys():
             self.stop_strategy(strategy)
 
@@ -956,6 +985,7 @@ class SpreadStrategyEngine:
         strategy_class: type[SpreadStrategyTemplate] = self.classes[class_name]
 
         parameters: dict = {}
+        name: str
         for name in strategy_class.parameters:
             parameters[name] = getattr(strategy_class, name)
 
@@ -1039,6 +1069,7 @@ class SpreadStrategyEngine:
 
         bars: list[BarData] = load_bar_data(spread, interval, start, end, output=self.write_log)
 
+        bar: BarData
         for bar in bars:
             callback(bar)
 
@@ -1049,5 +1080,6 @@ class SpreadStrategyEngine:
 
         ticks: list[TickData] = load_tick_data(spread, start, end)
 
+        tick: TickData
         for tick in ticks:
             callback(tick)

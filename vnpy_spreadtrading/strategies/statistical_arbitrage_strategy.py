@@ -12,27 +12,27 @@ from vnpy_spreadtrading import (
 class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
     """用布林带开平价差仓位。"""
 
-    author = "用Python的交易员"
+    author: str = "用Python的交易员"
 
-    boll_window = 20
-    boll_dev = 2
-    max_pos = 10
-    payup = 10
-    interval = 5
+    boll_window: int = 20
+    boll_dev: int = 2
+    max_pos: int = 10
+    payup: int = 10
+    interval: int = 5
 
-    spread_pos = 0.0
-    boll_up = 0.0
-    boll_down = 0.0
-    boll_mid = 0.0
+    spread_pos: float = 0.0
+    boll_up: float = 0.0
+    boll_down: float = 0.0
+    boll_mid: float = 0.0
 
-    parameters = [
+    parameters: list[str] = [
         "boll_window",
         "boll_dev",
         "max_pos",
         "payup",
         "interval"
     ]
-    variables = [
+    variables: list[str] = [
         "spread_pos",
         "boll_up",
         "boll_down",
@@ -45,8 +45,8 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
         """
         self.write_log("策略初始化")
 
-        self.bg = BarGenerator(self.on_spread_bar)
-        self.am = ArrayManager()
+        self.bg: BarGenerator = BarGenerator(self.on_spread_bar)
+        self.am: ArrayManager = ArrayManager()
 
         self.load_bar(10)
 
@@ -68,7 +68,7 @@ class StatisticalArbitrageStrategy(SpreadStrategyTemplate):
         """
         价差价格更新时的回调。
         """
-        tick = self.get_spread_tick()
+        tick: TickData = self.get_spread_tick()
         self.on_spread_tick(tick)
 
     def on_spread_tick(self, tick: TickData) -> None:

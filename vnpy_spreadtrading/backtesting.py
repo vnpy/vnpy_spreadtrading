@@ -2,10 +2,10 @@
 
 import traceback
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date as dt_date, datetime, timedelta
 from collections.abc import Callable
 from functools import partial
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 from pandas import DataFrame
@@ -44,7 +44,7 @@ INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
     Interval.DAILY: timedelta(days=1),
 }
 
-OptimizationResult = tuple[dict[str, Any], float, dict[str, Any]]
+OptimizationResult: TypeAlias = tuple[dict[str, Any], float, dict[str, Any]]
 
 
 class BacktestingEngine:
@@ -89,7 +89,7 @@ class BacktestingEngine:
 
         self.logs: list = []
 
-        self.daily_results: dict[date, DailyResult] = {}
+        self.daily_results: dict[dt_date, DailyResult] = {}
         self.daily_df: DataFrame | None = None
 
     def output(self, msg: str) -> None:
@@ -203,6 +203,7 @@ class BacktestingEngine:
         self.strategy.trading = True
         self.output("开始回放历史数据")
 
+        data: BarData | TickData
         for data in self.history_data:
             try:
                 func(data)
@@ -221,10 +222,11 @@ class BacktestingEngine:
             self.output("回测成交记录为空")
 
         # Add trade data into daily reuslt.
+        trade: TradeData
         for trade in self.trades.values():
             assert trade.datetime is not None
-            d: date = trade.datetime.date()
-            daily_result = self.daily_results[d]
+            d: dt_date = trade.datetime.date()
+            daily_result: DailyResult = self.daily_results[d]
             trade_value: float = self.trade_values[trade.vt_tradeid]
             daily_result.add_trade(trade, trade_value)
 
@@ -248,6 +250,8 @@ class BacktestingEngine:
         results: defaultdict = defaultdict(list)
 
         for daily_result in self.daily_results.values():
+            key: str
+            value: object
             for key, value in daily_result.__dict__.items():
                 results[key].append(value)
 
@@ -351,7 +355,7 @@ class BacktestingEngine:
             return_std = df["return"].std() * 100
 
             if return_std:
-                daily_risk_free = self.risk_free / self.annual_days
+                daily_risk_free: float = self.risk_free / self.annual_days
                 sharpe_ratio = (daily_return - daily_risk_free) / return_std * np.sqrt(self.annual_days)
             else:
                 sharpe_ratio = 0
@@ -435,20 +439,20 @@ class BacktestingEngine:
         if df is None:
             return
 
-        fig = make_subplots(
+        fig: go.Figure = make_subplots(
             rows=4,
             cols=1,
             subplot_titles=["Balance", "Drawdown", "Daily Pnl", "Pnl Distribution"],
             vertical_spacing=0.06
         )
 
-        balance_line = go.Scatter(
+        balance_line: go.Scatter = go.Scatter(
             x=df.index,
             y=df["balance"],
             mode="lines",
             name="Balance"
         )
-        drawdown_scatter = go.Scatter(
+        drawdown_scatter: go.Scatter = go.Scatter(
             x=df.index,
             y=df["drawdown"],
             fillcolor="red",
@@ -456,8 +460,8 @@ class BacktestingEngine:
             mode="lines",
             name="Drawdown"
         )
-        pnl_bar = go.Bar(y=df["net_pnl"], name="Daily Pnl")
-        pnl_histogram = go.Histogram(x=df["net_pnl"], nbinsx=100, name="Days")
+        pnl_bar: go.Bar = go.Bar(y=df["net_pnl"], name="Daily Pnl")
+        pnl_histogram: go.Histogram = go.Histogram(x=df["net_pnl"], nbinsx=100, name="Days")
 
         fig.add_trace(balance_line, row=1, col=1)
         fig.add_trace(drawdown_scatter, row=2, col=1)
@@ -487,13 +491,14 @@ class BacktestingEngine:
         )
 
         if output:
+            result: OptimizationResult
             for result in results:
                 msg: str = f"参数：{result[0]}, 目标：{result[1]}"
                 self.output(msg)
 
         return results
 
-    run_optimization = run_bf_optimization
+    run_optimization: Callable[["BacktestingEngine", OptimizationSetting, bool, int | None], list] = run_bf_optimization
 
     def run_ga_optimization(
         self,
@@ -517,6 +522,7 @@ class BacktestingEngine:
         )
 
         if output:
+            result: OptimizationResult
             for result in results:
                 msg: str = f"参数：{result[0]}, 目标：{result[1]}"
                 self.output(msg)
@@ -525,7 +531,7 @@ class BacktestingEngine:
 
     def update_daily_close(self, price: float) -> None:
         """写入当日收盘价；当天结果不存在时新建。"""
-        d: date = self.datetime.date()
+        d: dt_date = self.datetime.date()
 
         daily_result: DailyResult | None = self.daily_results.get(d, None)
         if daily_result:
@@ -564,12 +570,13 @@ class BacktestingEngine:
         用最新 K 线或 Tick 撮合限价单。
         """
         if self.mode == BacktestingMode.BAR:
-            long_cross_price = self.bar.close_price
-            short_cross_price = self.bar.close_price
+            long_cross_price: float = self.bar.close_price
+            short_cross_price: float = self.bar.close_price
         else:
             long_cross_price = self.tick.ask_price_1
             short_cross_price = self.tick.bid_price_1
 
+        algo: SpreadAlgoTemplate
         for algo in list(self.active_algos.values()):
             # Check whether limit orders can be filled.
             long_cross: bool = (
@@ -598,7 +605,7 @@ class BacktestingEngine:
             self.trade_count += 1
 
             if long_cross:
-                trade_price = long_cross_price
+                trade_price: float = long_cross_price
                 pos_change: float = algo.volume
             else:
                 trade_price = short_cross_price
@@ -633,8 +640,8 @@ class BacktestingEngine:
         """加载回测开始前的K线，逐根回调后返回。"""
         self.callback = callback
 
-        init_end = self.start - INTERVAL_DELTA_MAP[interval]
-        init_start = self.start - timedelta(days=days)
+        init_end: datetime = self.start - INTERVAL_DELTA_MAP[interval]
+        init_start: datetime = self.start - timedelta(days=days)
 
         bars: list[BarData] = load_bar_data(
             spread=self.spread,
@@ -645,6 +652,7 @@ class BacktestingEngine:
             backtesting=True
         )
 
+        bar: BarData
         for bar in bars:
             callback(bar)
 
@@ -654,8 +662,8 @@ class BacktestingEngine:
         """加载回测开始前的Tick；每有一条就调用一次回调，参数为回调自身。"""
         self.days = days
 
-        init_end = self.start - INTERVAL_DELTA_MAP[Interval.TICK]
-        init_start = self.start - timedelta(days=days)
+        init_end: datetime = self.start - INTERVAL_DELTA_MAP[Interval.TICK]
+        init_start: datetime = self.start - timedelta(days=days)
 
         ticks: list[TickData] = load_tick_data(
             self.spread,
@@ -663,6 +671,7 @@ class BacktestingEngine:
             init_end
         )
 
+        _tick: TickData
         for _tick in ticks:
             callback(callback)
 
@@ -728,7 +737,7 @@ class BacktestingEngine:
         """
         pass
 
-    send_email = send_notification
+    send_email: Callable[["BacktestingEngine", str, SpreadStrategyTemplate | None], None] = send_notification
 
     def get_engine_type(self) -> EngineType:
         """
@@ -779,9 +788,9 @@ class BacktestingEngine:
 class DailyResult:
     """单个交易日的盯市结果。"""
 
-    def __init__(self, date: date, close_price: float) -> None:
+    def __init__(self, date: dt_date, close_price: float) -> None:
         """用日期和收盘价初始化当日盈亏字段。"""
-        self.date = date
+        self.date: dt_date = date
         self.close_price: float = close_price
         self.pre_close: float = 0
 
@@ -829,9 +838,11 @@ class DailyResult:
         # Trading pnl is the pnl from new trade during the day
         self.trade_count = len(self.trades)
 
+        trade: TradeData
+        value: float
         for trade, value in self.trades:
             if trade.direction == Direction.LONG:
-                pos_change = trade.volume
+                pos_change: float = trade.volume
             else:
                 pos_change = -trade.volume
 
